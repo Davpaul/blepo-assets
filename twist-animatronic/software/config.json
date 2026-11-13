@@ -1,0 +1,38 @@
+{
+  "_help": "deg = joint angle from centre. center_us = pulse width at 0 deg (calibrate this first). range_deg = total servo travel for 500-2500 us (180 or 270). min/max = software limits, already inside the collision-checked envelope.",
+  "boards": {"A": "0x40", "B": "0x41"},
+  "update_hz": 50,
+  "joints": {
+    "yaw":        {"board": "A", "ch": 0, "center_us": 1500, "range_deg": 180, "min": -80, "max": 80, "speed": 120, "invert": false},
+    "lean_roll":  {"board": "A", "ch": 1, "center_us": 1500, "range_deg": 180, "min": -22, "max": 22, "speed": 60,  "invert": false},
+    "lean_pitch": {"board": "A", "ch": 2, "center_us": 1500, "range_deg": 180, "min": -22, "max": 22, "speed": 60,  "invert": false},
+    "head_yaw":   {"board": "A", "ch": 4, "center_us": 1500, "range_deg": 180, "min": -80, "max": 80, "speed": 240, "invert": false},
+    "head_roll":  {"board": "A", "ch": 5, "center_us": 1500, "range_deg": 180, "min": -25, "max": 25, "speed": 180, "invert": false},
+    "head_pitch": {"board": "A", "ch": 6, "center_us": 1500, "range_deg": 180, "min": -20, "max": 28, "speed": 180, "invert": false},
+    "jaw":        {"board": "A", "ch": 7, "center_us": 1500, "range_deg": 180, "min": -4,  "max": 40, "speed": 600, "invert": false},
+    "pan_l":      {"board": "B", "ch": 0, "center_us": 1500, "range_deg": 180, "min": -80, "max": 80, "speed": 200, "invert": false},
+    "tilt_l":     {"board": "B", "ch": 1, "center_us": 1500, "range_deg": 180, "min": -48, "max": 48, "speed": 200, "invert": false},
+    "ext_l":      {"board": "B", "ch": 2, "center_us": 1500, "range_deg": 270, "min": -85, "max": 125, "speed": 300, "invert": false},
+    "pan_r":      {"board": "B", "ch": 4, "center_us": 1500, "range_deg": 180, "min": -80, "max": 80, "speed": 200, "invert": true},
+    "tilt_r":     {"board": "B", "ch": 5, "center_us": 1500, "range_deg": 180, "min": -48, "max": 48, "speed": 200, "invert": false},
+    "ext_r":      {"board": "B", "ch": 6, "center_us": 1500, "range_deg": 270, "min": -85, "max": 125, "speed": 300, "invert": false}
+  },
+  "lipsync": {
+    "jaw_closed": 0,
+    "jaw_open": 32,
+    "lead_ms": 80,
+    "gate": 0.06,
+    "attack_ms": 30,
+    "release_ms": 90,
+    "player": ["aplay", "-q"],
+    "tts": ["espeak-ng", "-s", "150", "-w", "{wav}", "{text}"]
+  },
+  "poses": {
+    "home": {},
+    "look_left": {"head_yaw": 50, "yaw": 15},
+    "look_right": {"head_yaw": -50, "yaw": -15},
+    "curious": {"head_roll": 18, "head_pitch": 10, "lean_pitch": 8},
+    "wave": {"tilt_r": 40, "ext_r": 100, "pan_r": 20},
+    "shrug": {"ext_l": 90, "ext_r": 90, "tilt_l": 30, "tilt_r": 30, "head_roll": 10}
+  }
+}

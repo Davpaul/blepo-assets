@@ -1,0 +1,12 @@
+[Unit]
+Description=Twist puppet control panel
+After=network-online.target sound.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/twist-animatronic/software
+ExecStart=/home/pi/twist-venv/bin/python run.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

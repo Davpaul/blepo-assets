@@ -1,0 +1,67 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Twist</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:0;padding:12px;background:#1b1d22;color:#eee;max-width:760px;margin:auto}
+h2{font-size:15px;margin:18px 0 6px;color:#f5a13a;text-transform:uppercase;letter-spacing:.06em}
+.row{display:flex;align-items:center;gap:8px;margin:5px 0}
+.row label{width:92px;font-size:13px}.row input[type=range]{flex:1}.row span{width:44px;text-align:right;font-size:12px;color:#aaa}
+button{background:#2f333c;color:#eee;border:0;border-radius:8px;padding:10px 12px;margin:3px;font-size:14px}
+button.on{background:#f5a13a;color:#111}button.warn{background:#a33}
+input[type=text],input[type=number]{background:#2f333c;color:#eee;border:0;border-radius:8px;padding:10px;font-size:14px}
+#say{flex:1}details{margin-top:14px}small{color:#888}
+</style></head><body>
+<div class="row"><b style="flex:1;font-size:20px">Twist</b>
+<button id="idle" onclick="post('idle',{on:!S.idle})">Idle</button>
+<button onclick="post('pose',{name:'home'})">Home</button>
+<button class="warn" onclick="post(S.enabled?'relax':'wake')" id="pw">Relax</button></div>
+<h2>Voice</h2>
+<div class="row"><input id="say" type="text" placeholder="Type something for Twist to say"><button onclick="post('say',{text:say.value})">Say</button><button onclick="post('stop')">Stop</button></div>
+<div id="sounds"></div>
+<h2>Poses</h2><div id="poses"></div>
+<div class="row"><input id="pn" type="text" placeholder="new pose name"><button onclick="post('save_pose',{name:pn.value})">Save current as pose</button></div>
+<h2>Joints</h2><div id="joints"></div>
+<small>Gamepad: left stick head, right stick body, right trigger jaw, d-pad up/down both arms.</small>
+<details><summary>Calibration</summary><div id="cal"></div>
+<button onclick="post('save_config')">Save calibration to config.json</button></details>
+<script>
+let S={joints:{}},built=false,drag={};
+async function post(p,d){await fetch('/api/'+p,{method:'POST',body:JSON.stringify(d||{})});refresh()}
+function el(h){const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild}
+async function refresh(){
+  S=await (await fetch('/api/state')).json();
+  idle.className=S.idle?'on':'';pw.textContent=S.enabled?'Relax':'Wake';
+  if(!built){built=true;
+    for(const [n,j] of Object.entries(S.joints)){
+      const r=el(`<div class="row"><label>${n}</label><input type="range" min="${j.min}" max="${j.max}" step="0.5" value="${j.target}" id="j_${n}"><span id="v_${n}"></span></div>`);
+      joints.append(r);const s=r.querySelector('input');
+      s.oninput=()=>{drag[n]=Date.now();fetch('/api/set',{method:'POST',body:JSON.stringify({[n]:+s.value})})};
+      const c=el(`<div class="row"><label>${n}</label><input type="number" value="${j.center_us}" step="5" style="width:80px"><small>centre us</small>
+        <label style="width:auto"><input type="checkbox" ${j.invert?'checked':''}> invert</label></div>`);
+      cal.append(c);const [num,chk]=c.querySelectorAll('input');
+      num.onchange=()=>post('trim',{name:n,center_us:+num.value});chk.onchange=()=>post('trim',{name:n,invert:chk.checked});
+    }
+    for(const p of S.poses)poses.append(el(`<button onclick="post('pose',{name:'${p}'})">${p}</button>`));
+    for(const f of S.sounds)sounds.append(el(`<button onclick="post('play',{file:'${f}'})">&#9654; ${f.replace('.wav','')}</button>`));
+  }
+  for(const [n,j] of Object.entries(S.joints)){
+    document.getElementById('v_'+n).textContent=j.pos.toFixed(0)+'°';
+    if(!(drag[n]&&Date.now()-drag[n]<800))document.getElementById('j_'+n).value=j.target;
+  }
+}
+setInterval(refresh,400);refresh();
+// gamepad puppeteering
+let last={};
+function dz(v){return Math.abs(v)<0.12?0:v}
+setInterval(()=>{const g=navigator.getGamepads&&navigator.getGamepads()[0];if(!g||!S.joints.jaw)return;
+  const J=S.joints,m={};
+  const map=(n,v)=>{const j=J[n];m[n]=v>=0?v*j.max:-v*j.min};
+  map('head_yaw',-dz(g.axes[0]));map('head_pitch',-dz(g.axes[1]));
+  map('yaw',-dz(g.axes[2]));map('lean_pitch',dz(g.axes[3]));
+  m.jaw=J.jaw.max*(g.buttons[7]?g.buttons[7].value:0);
+  const up=(g.buttons[12]&&g.buttons[12].pressed)?1:(g.buttons[13]&&g.buttons[13].pressed)?-0.6:0;
+  map('ext_l',up);map('ext_r',up);
+  const out={};for(const k in m){const v=Math.round(m[k]);if(last[k]!==v){out[k]=v;last[k]=v}}
+  if(Object.keys(out).length)fetch('/api/set',{method:'POST',body:JSON.stringify(out)});
+},50);
+</script></body></html>
