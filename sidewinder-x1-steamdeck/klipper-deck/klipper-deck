@@ -1,0 +1,156 @@
+#!/bin/bash
+# klipper-deck - run Klipper + Mainsail for a 3D printer from a Steam Deck.
+#
+#   klipper-deck start    start everything (keep the window open; blocks sleep while running)
+#   klipper-deck stop     stop it (or just close the window / press Ctrl+C)
+#   klipper-deck flash    build + flash Klipper firmware onto the printer board
+#   klipper-deck logs     watch the Klipper log
+#   klipper-deck status   is it running, which port, what address
+#   klipper-deck update   rebuild the container from the kit folder
+#   klipper-deck shell    open a shell inside the container (for tinkering)
+
+IMAGE=localhost/klipper-deck
+NAME=klipper-deck
+DATA="$HOME/klipper-deck/printer_data"
+CONF="$HOME/.config/klipper-deck"
+
+bold() { printf '\033[1m%s\033[0m\n' "$*"; }
+
+find_printer() {
+    local d
+    for d in /dev/serial/by-id/*1a86* /dev/serial/by-id/*; do
+        [ -e "$d" ] && { readlink -f "$d"; return; }
+    done
+    for d in /dev/ttyUSB* /dev/ttyACM*; do
+        [ -e "$d" ] && { echo "$d"; return; }
+    done
+}
+
+http_port() {
+    local start
+    start=$(cat /proc/sys/net/ipv4/ip_unprivileged_port_start 2>/dev/null || echo 1024)
+    if [ "$start" -le 80 ]; then echo 80; else echo 8080; fi
+}
+
+deck_ip() {
+    ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}'
+}
+
+url() {
+    local port ip
+    port=$(http_port); ip=$(deck_ip)
+    if [ "$port" = 80 ]; then echo "http://${ip:-<deck-ip>}"; else echo "http://${ip:-<deck-ip>}:$port"; fi
+}
+
+is_running() {
+    podman container exists "$NAME" 2>/dev/null && \
+        [ "$(podman inspect -f '{{.State.Running}}' "$NAME" 2>/dev/null)" = "true" ]
+}
+
+need_image() {
+    if ! podman image exists "$IMAGE"; then
+        echo "Container not built yet. Run install.sh from the kit folder first."
+        exit 1
+    fi
+}
+
+cmd_start() {
+    need_image
+    if is_running; then
+        echo "Already running. Open $(url)"
+        exit 0
+    fi
+    mkdir -p "$DATA"
+    local dev devargs=()
+    dev=$(find_printer)
+    if [ -n "$dev" ]; then
+        devargs=(--device "$dev:/dev/printer")
+        echo "Printer found on $dev"
+    else
+        echo "No printer found. Is it plugged in by USB and switched on?"
+        read -r -p "Start anyway, just to look at Mainsail? [y/N] " a
+        [[ "$a" =~ ^[Yy] ]] || exit 1
+    fi
+
+    echo
+    bold "Mainsail:          $(url)"
+    bold "Slicer upload:     host $(deck_ip):$(http_port)  (type: Octo/Klipper or OctoPrint)"
+    echo "Also try:          http://$(hostname).local"
+    echo
+    echo "Sleep is blocked while this window is open. Close it or press Ctrl+C to stop."
+    echo
+
+    exec systemd-inhibit \
+        --what=sleep:idle \
+        --who="Klipper (3D printer)" \
+        --why="Printer connected: sleeping would stop the print" \
+        --mode=block \
+        podman run --rm --name "$NAME" \
+            --network host \
+            "${devargs[@]}" \
+            -e HTTP_PORT="$(http_port)" \
+            -v "$DATA:/root/printer_data" \
+            "$IMAGE" run
+}
+
+cmd_stop() {
+    if is_running; then podman stop -t 10 "$NAME" >/dev/null && echo "Stopped."; else echo "Not running."; fi
+}
+
+cmd_flash() {
+    need_image
+    if is_running; then
+        echo "Stopping Klipper first so the port is free..."
+        podman stop -t 10 "$NAME" >/dev/null
+    fi
+    local dev
+    dev=$(find_printer)
+    [ -n "$dev" ] || { echo "No printer found. Plug it in by USB and switch it on."; exit 1; }
+
+    local vidpid
+    vidpid=$(udevadm info -q property -n "$dev" 2>/dev/null | awk -F= '/ID_VENDOR_ID/{v=$2} /ID_MODEL_ID/{m=$2} END{print v":"m}')
+    if [ "$vidpid" != "1a86:7523" ]; then
+        echo "The board on $dev reports USB id $vidpid, not the stock X1 board (1a86:7523)."
+        echo "This flasher is only for the stock ATmega2560 board. Stopping to be safe."
+        exit 1
+    fi
+    mkdir -p "$DATA"
+    podman run --rm -it --device "$dev:/dev/printer" -v "$DATA:/root/printer_data" "$IMAGE" flash
+}
+
+cmd_logs() {
+    local f="$DATA/logs/klippy.log"
+    [ -f "$f" ] || { echo "No log yet. Start it first."; exit 1; }
+    tail -n 60 -f "$f"
+}
+
+cmd_status() {
+    if is_running; then echo "Running. Mainsail: $(url)"; else echo "Not running."; fi
+    local dev; dev=$(find_printer)
+    echo "Printer USB: ${dev:-not found}"
+    echo "Config files: $DATA/config"
+    echo "Uploaded prints: $DATA/gcodes"
+}
+
+cmd_update() {
+    local src
+    src=$(cat "$CONF/src" 2>/dev/null)
+    [ -d "$src/container" ] || { echo "Can't find the kit folder. Re-run install.sh from it."; exit 1; }
+    podman build -t "$IMAGE" -f "$src/container/Containerfile" "$src/container"
+}
+
+cmd_shell() {
+    need_image
+    if is_running; then podman exec -it "$NAME" bash; else podman run --rm -it -v "$DATA:/root/printer_data" "$IMAGE" shell; fi
+}
+
+case "${1:-}" in
+    start)  cmd_start ;;
+    stop)   cmd_stop ;;
+    flash)  cmd_flash ;;
+    logs)   cmd_logs ;;
+    status) cmd_status ;;
+    update) cmd_update ;;
+    shell)  cmd_shell ;;
+    *) sed -n 2,12p "$0" | sed 's/^# \{0,1\}//' ;;
+esac

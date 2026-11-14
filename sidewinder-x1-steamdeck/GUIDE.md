@@ -1,5 +1,7 @@
 # Sidewinder X1 on a Steam Deck
 
+> **Running Klipper from the Deck instead?** Use `klipper-deck/KLIPPER-GUIDE.md`. This page covers going back to the stock touch screen setup.
+
 Goal: get one X1 printing with its own touch screen, using the Steam Deck to slice files and (if needed) put the stock firmware back.
 
 ## What the listing means

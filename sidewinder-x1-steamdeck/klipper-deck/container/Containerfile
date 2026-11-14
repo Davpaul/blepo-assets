@@ -1,0 +1,55 @@
+# Klipper + Moonraker + Mainsail in one container, for running a printer from a Steam Deck.
+# Built by install.sh with:  podman build -t klipper-deck .
+
+# If Docker Hub is slow or rate-limited, build with:
+#   --build-arg BASE=public.ecr.aws/docker/library/debian:trixie-slim
+ARG BASE=docker.io/library/debian:trixie-slim
+FROM ${BASE}
+
+# Versions tested together. Bump these to update.
+ARG KLIPPER_SHA=29d4ec2d6d840ee839333306003a400da186d41d
+ARG MOONRAKER_SHA=b559b9a81161f958a43c2f527b6ad96f73310d5d
+ARG MAINSAIL_VERSION=v2.19.0
+ARG MAINSAIL_CONFIG_SHA=ff3869a621db17ce3ef660adbbd3fa321995ac42
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl git unzip nginx iproute2 procps \
+        python3 python3-venv python3-dev build-essential libffi-dev \
+        libsodium-dev zlib1g-dev libjpeg-dev libopenjp2-7 \
+        gcc-avr binutils-avr avr-libc avrdude \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt
+
+# fetch_sha <repo-url> <dir> <sha>: shallow fetch of one exact commit
+RUN printf '#!/bin/sh\nset -e\nmkdir -p "$2" && cd "$2" && git init -q && git remote add origin "$1" && git fetch -q --depth 1 origin "$3" && git checkout -q FETCH_HEAD\n' > /usr/local/bin/fetch_sha \
+    && chmod +x /usr/local/bin/fetch_sha
+
+# Klipper (host software + firmware source for flashing the printer board)
+RUN fetch_sha https://github.com/Klipper3d/klipper.git /opt/klipper "$KLIPPER_SHA" \
+    && python3 -m venv /opt/klippy-env \
+    && /opt/klippy-env/bin/pip install --no-cache-dir -r /opt/klipper/scripts/klippy-requirements.txt \
+    && cd /opt/klipper/klippy && /opt/klippy-env/bin/python -c "import chelper; chelper.get_ffi()"
+
+# Moonraker (the API that Mainsail and your slicer talk to)
+RUN fetch_sha https://github.com/Arksine/moonraker.git /opt/moonraker "$MOONRAKER_SHA" \
+    && python3 -m venv /opt/moonraker-env \
+    && /opt/moonraker-env/bin/pip install --no-cache-dir -r /opt/moonraker/scripts/moonraker-requirements.txt
+
+# Mainsail (the web page) + its standard macros
+RUN mkdir -p /opt/mainsail \
+    && curl -fsSL -o /tmp/mainsail.zip "https://github.com/mainsail-crew/mainsail/releases/download/${MAINSAIL_VERSION}/mainsail.zip" \
+    && unzip -q /tmp/mainsail.zip -d /opt/mainsail && rm /tmp/mainsail.zip \
+    && fetch_sha https://github.com/mainsail-crew/mainsail-config.git /opt/mainsail-config "$MAINSAIL_CONFIG_SHA"
+
+RUN rm -f /etc/nginx/sites-enabled/default
+COPY nginx.conf.template /opt/deck/nginx.conf.template
+COPY defaults/ /opt/deck/defaults/
+COPY entrypoint.sh flash-mcu.sh /opt/deck/
+RUN chmod +x /opt/deck/*.sh
+
+ENV HOME=/root
+EXPOSE 80 7125
+ENTRYPOINT ["/opt/deck/entrypoint.sh"]
+CMD ["run"]
