@@ -1,0 +1,159 @@
+board: MKS TinyBee V1.0
+name: Belt CNC
+meta: four-belt sled, steppers at the table corners. See BUILD.md.
+
+# Driver sockets:  X = south-west belt   Y = south-east belt   Z = Z axis
+#                  E0 = north-east belt  E1 = north-west belt
+# A positive move on a belt motor must pay belt OUT. If a corner pulls in
+# instead, add or remove ":low" on that motor's direction_pin.
+
+kinematics:
+  BeltCNC:
+    # >>> table  (this block is rewritten by tools/table_config.py - do not edit by hand)
+    sw_pulley_x: -30.000
+    sw_pulley_y: -30.000
+    sw_post_x: -52.627
+    sw_post_y: -7.373
+    sw_pinch_deg: 285.000
+    se_pulley_x: 2470.000
+    se_pulley_y: -30.000
+    se_post_x: 2447.373
+    se_post_y: -52.627
+    se_pinch_deg: 15.000
+    ne_pulley_x: 2470.000
+    ne_pulley_y: 1250.000
+    ne_post_x: 2492.627
+    ne_post_y: 1227.373
+    ne_pinch_deg: 105.000
+    nw_pulley_x: -30.000
+    nw_pulley_y: 1250.000
+    nw_post_x: -7.373
+    nw_post_y: 1272.627
+    nw_pinch_deg: 195.000
+    home_x: 1220.000
+    home_y: 610.000
+    min_x: 40.000
+    max_x: 2400.000
+    min_y: 40.000
+    max_y: 1180.000
+    # <<< table
+    pulley_pitch_radius: 6.366
+    idler_pitch_radius: 6.376
+    idler_offset: 32.0
+    belt_dz: 0.0          # workpiece thickness when the corner units sit lower than the sled
+    segment_length: 2.0
+
+stepping:
+  engine: I2S_STATIC
+  idle_ms: 255            # 255 = motors stay energised, so the belts hold position
+  pulse_us: 4
+  dir_delay_us: 1
+  disable_delay_us: 0
+
+axes:
+  x:   # south-west belt (driver socket X)
+    steps_per_mm: 80.000          # 20-tooth GT2 pulley, 1/16 microstepping
+    max_rate_mm_per_min: 4000.000
+    acceleration_mm_per_sec2: 150.000
+    max_travel_mm: 6000.000
+    soft_limits: false
+    homing:
+      cycle: -1                   # no switch: "$HX" means "the bit is at mpos_mm in X now"
+      mpos_mm: 1220.000           # =home_x
+    motor0:
+      stepstick:
+        step_pin: I2SO.1
+        direction_pin: I2SO.2
+        disable_pin: I2SO.0
+
+  y:   # south-east belt (driver socket Y)
+    steps_per_mm: 80.000
+    max_rate_mm_per_min: 4000.000
+    acceleration_mm_per_sec2: 150.000
+    max_travel_mm: 6000.000
+    soft_limits: false
+    homing:
+      cycle: -1
+      mpos_mm: 610.000            # =home_y
+    motor0:
+      stepstick:
+        step_pin: I2SO.4
+        direction_pin: I2SO.5
+        disable_pin: I2SO.3
+
+  z:   # router up and down (driver socket Z)
+    steps_per_mm: 400.000         # donor T8 screw with 8 mm lead. Use 1600 for a 2 mm lead screw
+    max_rate_mm_per_min: 600.000
+    acceleration_mm_per_sec2: 80.000
+    max_travel_mm: 38.000
+    soft_limits: true
+    homing:
+      cycle: 1
+      positive_direction: true    # homes upward onto the switch under the bridge
+      mpos_mm: 0.000
+      feed_mm_per_min: 100.000
+      seek_mm_per_min: 400.000
+      settle_ms: 250
+    motor0:
+      limit_pos_pin: gpio.22:low:pu      # Z- endstop socket
+      hard_limits: false
+      pulloff_mm: 2.000
+      stepstick:
+        step_pin: I2SO.7
+        direction_pin: I2SO.8
+        disable_pin: I2SO.6
+
+  a:   # north-east belt (driver socket E0)
+    steps_per_mm: 80.000
+    max_rate_mm_per_min: 4000.000
+    acceleration_mm_per_sec2: 150.000
+    max_travel_mm: 6000.000
+    soft_limits: false
+    motor0:
+      stepstick:
+        step_pin: I2SO.10
+        direction_pin: I2SO.11
+        disable_pin: I2SO.9
+
+  b:   # north-west belt (driver socket E1)
+    steps_per_mm: 80.000
+    max_rate_mm_per_min: 4000.000
+    acceleration_mm_per_sec2: 150.000
+    max_travel_mm: 6000.000
+    soft_limits: false
+    motor0:
+      stepstick:
+        step_pin: I2SO.13
+        direction_pin: I2SO.14
+        disable_pin: I2SO.12
+
+i2so:
+  bck_pin: gpio.25
+  data_pin: gpio.27
+  ws_pin: gpio.26
+
+spi:
+  miso_pin: gpio.19
+  mosi_pin: gpio.23
+  sck_pin: gpio.18
+
+sdcard:
+  cs_pin: gpio.5
+  card_detect_pin: NO_PIN
+
+probe:
+  pin: gpio.32:low:pu             # Y- endstop socket: touch plate for setting Z zero (optional)
+  check_mode_start: false
+
+# Laser module (optional). The router is switched by hand, so nothing else is needed for it.
+Laser:
+  pwm_hz: 5000
+  output_pin: gpio.13             # EXP1 pin 2
+  enable_pin: NO_PIN
+  disable_with_s0: false
+  s0_with_disable: true
+  tool_num: 0
+  speed_map: 0=0.000% 1000=100.000%
+
+start:
+  must_home: false
