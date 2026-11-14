@@ -1,6 +1,14 @@
 # Build instructions
 
-Read this once all the way through before starting. Allow a weekend for printing, a day for assembly and a day for setup.
+Read this once all the way through before starting. Allow a week of evenings for printing, a day for mechanical assembly, a day for wiring and a day for setup.
+
+**Tools you need:** hex keys (1.5 to 4mm), small screwdrivers, an 8mm spanner, hacksaw, round file, drill with 3mm, 8mm and 16mm bits, tape measure, and the soldering kit listed in [WIRING.md](WIRING.md).
+
+**General tips**
+- Lay out the parts for each step before starting it, and do one corner unit completely before the other three.
+- Screws going into plastic: stop as soon as they feel snug. Overtightening strips the hole.
+- A nyloc nut is the kind with a plastic ring. It stays where you leave it, so "tighten until it still spins" means exactly that.
+- If a printed hole is tight, twist a drill bit through it by hand.
 
 ![Layout](renders/layout.png)
 
@@ -48,7 +56,7 @@ All four are identical.
 6. Check the gap: a scrap of belt, teeth against the pulley, should slide between pulley and bearing with light drag. If it jams, ease the bolt hole with a round file. If the belt can lift off the teeth, the gap is too big and that bracket needs reprinting.
 7. Reel motor: push an **N20 motor** up into the pocket under the bracket, shaft through the small hole. Hold it there with `n20_cup` and two **M3 x 12** screws, wires out through the slot.
 8. Reel: screw `reel_flange` to the hub of `reel_body` with three **M3 x 12** screws, then push the reel onto the motor's D-shaped shaft. It should turn level, clear of the bracket.
-9. Fit a **GX16-6 socket** in the hole in the hanging tab. Solder the four stepper wires to pins 1 to 4 and the two reel motor wires to pins 5 and 6. Wire all four corners the same.
+9. Fit a **GX16-6 socket** in the hole in the hanging tab. Wiring it is covered in WIRING.md.
 
 ## 4. Build the sled
 
@@ -67,27 +75,22 @@ All four are identical.
 
 ## 5. Electronics
 
-1. Fit the five drivers to the TinyBee. Set the jumpers under each for 16 microsteps (see the table in the board's manual for your driver type).
-2. Set each driver's current to about 1A (the driver's leaflet gives the voltage to set on the small screw).
-3. Fix the board in `electronics_tray` on M3 standoffs: mark the holes through the board and drill 2.8mm pilots in the tray floor.
-4. Make five leads from the 6-core cable with a **GX16-6 plug** on each end, pins wired straight through. Drill 16mm holes in the tray wall for five sockets.
-5. Wire the sockets to the board as below. Pins 1 to 4 go to the driver socket, pins 5 and 6 are the reel motor.
-6. Reel motors: connect SW and SE in series with one **120 ohm 5W resistor**, and NE and NW in series with the other. Connect both chains across the board's **HE0** output. If a reel turns the wrong way, swap its two wires.
+Follow **[WIRING.md](WIRING.md)**. It is written for a first-timer: tools, how to solder a connector, which wire goes on which pin, and what to test before switching on.
 
-| Board socket | Goes to |
+Summary of where each lead goes:
+
+| Board socket | Lead |
 |---|---|
-| X | SW corner motor |
-| Y | SE corner motor |
-| Z | Z motor on the sled |
-| E0 | NE corner motor |
-| E1 | NW corner motor |
-| Z- endstop | Z microswitch (signal and ground, the two outer switch tags) |
-| Y- endstop | Touch plate, optional |
-| Power in | 24V supply |
+| X | SW corner |
+| Y | SE corner |
+| E0 | NE corner |
+| E1 | NW corner |
+| Z, plus the Z- endstop | Sled |
+| HE0 | The four reel motors |
 
 **Always switch off before plugging or unplugging a lead.** Pulling a stepper lead under power can destroy its driver.
 
-Put the tray at the middle of the south edge. Hang the Z motor cable, router flex and vacuum hose from above (a hook in the ceiling and a bungee works), so they never drag on the sled.
+Put the tray at the middle of the south edge. Hang the sled lead, router flex and vacuum hose from above (a hook in the ceiling and a bungee works), so they never drag on the sled.
 
 ## 6. Firmware
 

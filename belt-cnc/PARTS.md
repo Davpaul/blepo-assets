@@ -88,6 +88,10 @@ An M3 and M5 assortment box covers all of this for about £12.
 | XPS foam insulation board, 50mm, to lie under the sheet | 1 to 2 | £12 |
 | Scrap ply or timber for the corner wings (optional, see BUILD.md) | 4 pieces about 300 x 250mm | free |
 
+### Hand tools
+
+See the tool lists at the top of BUILD.md and WIRING.md. The soldering kit and multimeter come to about £60 if you have none of it.
+
 ### Optional tools
 
 | Item | Est. |

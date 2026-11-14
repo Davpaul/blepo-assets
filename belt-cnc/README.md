@@ -12,6 +12,7 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 |---|---|
 | [PARTS.md](PARTS.md) | What to salvage from the Artillery X1, what to buy, what to print |
 | [BUILD.md](BUILD.md) | Step-by-step construction and setup |
+| [WIRING.md](WIRING.md) | Beginner's guide to the soldering and wiring, with diagrams |
 | [firmware/INSTALL.md](firmware/INSTALL.md) | Putting the software on the controller |
 | `stl/` | Printable parts, ready to slice |
 | `renders/` | Pictures of every part and the assemblies |
