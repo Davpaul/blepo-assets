@@ -10,6 +10,7 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 
 | File | What it is |
 |---|---|
+| [belt-cnc-build-guide.pdf](belt-cnc-build-guide.pdf) | The printable step-by-step guide, with life-size drawings of every fastener. Print at 100%. |
 | [PARTS.md](PARTS.md) | What to salvage from the Artillery X1, what to buy, what to print |
 | [BUILD.md](BUILD.md) | Step-by-step construction and setup |
 | [WIRING.md](WIRING.md) | Beginner's guide to the soldering and wiring, with diagrams |
@@ -35,6 +36,7 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 | `tools/simulate.py` | Map where on a given table the machine can hold the router |
 | `tools/make_test_pattern.py`, `tools/calibrate.py` | Mark test dots, then correct scale from measurements of them |
 | `tools/beltkin.py` | The belt geometry model the others share |
+| `tools/make_pdf.py` | Rebuild the PDF guide (needs `reportlab` and `pillow`) |
 | `cad/build.py` | Regenerate every STL from `cad/parts.py` and `cad/geometry.py` |
 
 The scripts need Python 3 with `numpy` (and `matplotlib`, `manifold3d` for the CAD and diagrams, `pyserial` for USB).

@@ -82,3 +82,36 @@ if __name__ == "__main__":
     render(sled_assembly(69, shoe=False)[:5] , os.path.join(REN, "assembly_sled_bare.png"), views=((30, -65), (30, 115), (89.9, -90)), title="Sled without router")
     for n, v in checks():
         print(f"{'CLASH' if v > 0.5 else 'ok   '} {n:34s} {v:8.1f} mm3")
+
+
+def step_renders():
+    """One picture per assembly stage, for the PDF guide."""
+    fx, fy = G.F_LOCAL; kx, ky = G.K_LOCAL; px, py = G.P_LOCAL
+    motor, shaft, pulley, bearing, sheet = corner_hw()
+    br = (P.corner_bracket(), BLUE, 1)
+    bolts = (union(cyl(fx, fy, 0, 33, 2.5), cyl(kx, ky, 0, 28, 2.5)), RED, 1)
+    mot = (union(motor, shaft), DARK, 1)
+    posts = [(P.f_spacer().translate((fx, fy, T)), GREEN, 1), (P.f_sleeve().translate((fx, fy, T + 8)), ORANGE, 1),
+             (P.k_spacer().translate((kx, ky, T)), GREEN, 1), (bearing, GREY, 1), (pulley, GREY, 1)]
+    n20 = box(G.REEL_LOCAL[0] - 6, G.REEL_LOCAL[0] + 6, G.REEL_LOCAL[1] - 5, G.REEL_LOCAL[1] + 5, G.N20_POCKET - 34, G.N20_POCKET)
+    reel = [(P.n20_cup(), GREEN, 1), (n20, DARK, 1), (P.reel_body(), ORANGE, 1), (P.reel_flange(), ORANGE, 1)]
+    cv = ((32, -120), (-28, -120))
+    render([br, bolts], os.path.join(REN, "step_corner_1.png"), views=cv)
+    render([br, bolts, mot], os.path.join(REN, "step_corner_2.png"), views=cv)
+    render([br, bolts, mot] + posts, os.path.join(REN, "step_corner_3.png"), views=((32, -120), (89.9, -90)))
+    render([br, bolts, mot] + posts + reel, os.path.join(REN, "step_corner_4.png"), views=((32, -120), (-28, -120)))
+
+    idlers, rods, router, zmotor, screw = sled_hw(45)
+    base = (P.sled_base(), BLUE, 1)
+    car = (P.z_carriage().translate((0, 0, 45)), ORANGE, 1)
+    bridge = (P.z_bridge().translate((0, 0, G.BRIDGE_Z)), GREEN, 1)
+    sv = ((26, -62), (26, 118))
+    render([base, (idlers, GREY, 1)], os.path.join(REN, "step_sled_1.png"), views=sv)
+    render([base, (idlers, GREY, 1), (rods, GREY, 1), car], os.path.join(REN, "step_sled_2.png"), views=sv)
+    render([base, (idlers, GREY, 1), (rods, GREY, 1), car, bridge, (zmotor, DARK, 1), (screw, GREY, 1)], os.path.join(REN, "step_sled_3.png"), views=sv)
+    render([base, (idlers, GREY, 1), (rods, GREY, 1), car, bridge, (zmotor, DARK, 1), (screw, GREY, 1), (router, RED, 1), (P.dust_shoe(), (.8, .8, .3), 1)],
+           os.path.join(REN, "step_sled_4.png"), views=sv)
+    render([(P.pen_caddy_body(), BLUE, 1), (P.pen_slider().translate((0, 0, -25)), ORANGE, 1), (cyl(-6, 0, -60, 90, 5), DARK, 1)],
+           os.path.join(REN, "step_pen.png"), views=((24, -60), (24, 30)))
+    render([(P.laser_caddy(), BLUE, 1), (box(-16.5, 16.5, -16.5, 16.5, -30, 70).translate((-4, 0, 0)), DARK, 1)],
+           os.path.join(REN, "step_laser.png"), views=((24, -60), (60, 30)))
