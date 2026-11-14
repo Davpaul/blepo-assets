@@ -28,7 +28,10 @@ def corner_bracket():
     top = prism([(0, 0), (tp, 0), (tp, 18), (18, tp), (0, tp)], 0, T)
     # fence: two walls that register against the two edges of the corner
     fence = union(box(-ft, 0, -ft, tp, -fd, T), box(-ft, tp, -ft, 0, -fd, T))
-    body = union(outrigger, top, fence)
+    rx, ry = G.REEL_LOCAL
+    reel_plate = prism(rounded_rect_pts(-10, rx + 17, ry - 17, -30, 5), 0, T)      # carries the reel motor
+    plug_tab = box(-8, 28, ry - 21, ry - 17, -34, T)                              # panel for the GX16 socket
+    body = union(outrigger, top, fence, reel_plate, plug_tab)
 
     cuts = []
     # motor: centre boss hole, four M3 with counterbores so the heads sit flush
@@ -42,44 +45,58 @@ def corner_bracket():
     for (x, y) in ((fx, fy), (kx, ky)):
         cuts.append(cyl(x, y, -1, T + 1, G.CLEAR_M5 / 2))
         cuts.append(hexprism(x, y, -1, HEX_POCKET, G.HEX_M5_AF))
-    # wood screws into the sheet, countersunk from the top
+    # M6 bolts (wing nuts into T-nuts in the board), or wood screws with washers
     for (x, y) in ((24, 24), (62, 9), (9, 62)):
-        cuts.append(cyl(x, y, -1, T + 1, 2.3))
-        cuts.append(cyl(x, y, T - 2.4, T + 0.01, 2.3, 4.7))
-    # pilot holes for the tail guide
-    for (x, y) in tail_guide_screws():
-        cuts.append(cyl(x, y, -1, T + 1, G.PILOT_M3 / 2))
+        cuts.append(cyl(x, y, -1, T + 1, 3.25))
+    # reel motor (N20): gearbox face sits in a pocket under the plate, shaft comes up through
+    n = G.N20
+    cuts.append(box(rx - n["w"] / 2 - 0.2, rx + n["w"] / 2 + 0.2, ry - n["d"] / 2 - 0.2, ry + n["d"] / 2 + 0.2, -1, G.N20_POCKET))
+    cuts.append(cyl(rx, ry, -1, T + 1, 2.6))
+    for sx in (-1, 1):
+        cuts.append(cyl(rx + sx * 13, ry, -1, T + 1, G.PILOT_M3 / 2))
+    cuts.append(cyl_y(ry - 22, ry - 16, 10, -18, 8.1))                            # 16 mm socket hole
     return body - union(*cuts)
 
 
-def _tail_frame():
-    """Centre and direction of the slack-belt path just after the pinch bearing."""
-    px, py = G.P_LOCAL
-    a = math.radians(G.PINCH_ANGLE_DEG)
-    r = G.BELT_BACK_R_ON_PULLEY
-    x0, y0 = px + r * math.cos(a), py + r * math.sin(a)
-    ux, uy = -math.sin(a), math.cos(a)            # travel direction of the tail
-    c = (x0 + 26 * ux, y0 + 26 * uy)
-    return c, (ux, uy), math.degrees(math.atan2(uy, ux))
+def n20_cup():
+    """Holds the reel motor up against the underside of the bracket."""
+    n = G.N20
+    depth = n["body_len"] - G.N20_POCKET
+    cup = union(box(-n["w"] / 2 - 2.5, n["w"] / 2 + 2.5, -n["d"] / 2 - 2.5, n["d"] / 2 + 2.5, -depth - 2, 0),
+                rounded_box(-17, 17, -6, 6, -3, 0, 3))
+    cup -= box(-n["w"] / 2 - 0.2, n["w"] / 2 + 0.2, -n["d"] / 2 - 0.2, n["d"] / 2 + 0.2, -depth, 1)
+    cup -= box(-3, 3, -n["d"] / 2 - 3, n["d"] / 2 + 3, -depth - 3, -depth + 6)      # wire slot
+    for sx in (-1, 1):
+        cup -= cyl(sx * 13, 0, -4, 1, G.CLEAR_M3 / 2)
+    return cup.translate((G.REEL_LOCAL[0], G.REEL_LOCAL[1], 0))
 
 
-def tail_guide_screws():
-    c, (ux, uy), _ = _tail_frame()
-    nx, ny = -uy, ux
-    return [(c[0] + 8.5 * nx, c[1] + 8.5 * ny), (c[0] - 8.5 * nx, c[1] - 8.5 * ny)]
+REEL_Z0 = 12.5      # underside of the reel's lower flange above the sheet surface
 
 
-def tail_guide():
-    """Slot that keeps the slack belt standing on edge as it leaves / returns."""
-    c, _, ang = _tail_frame()
-    base = rounded_box(-11, 11, -13, 13, 0, 3, 3)
-    walls = []
-    for v in (3.2, -3.2):     # 3 mm walls either side of a 3.4 mm slot, rounded ends
-        walls.append(hull(cyl(-9, v, 3, 18, 1.5, seg=24), cyl(9, v, 3, 18, 1.5, seg=24)))
-    part = union(base, *walls)
-    for v in (8.5, -8.5):
-        part -= cyl(0, v, -1, 4, G.CLEAR_M3 / 2)
-    return part.rotate((0, 0, ang)).translate((c[0], c[1], T))
+def reel_body():
+    """Top flange, hub and drive boss in one piece. The hub has a slot for the belt end."""
+    c = G.REEL_CHANNEL
+    hub_z0, hub_z1 = REEL_Z0 + 2, REEL_Z0 + 2 + c
+    body = union(cyl(0, 0, hub_z1, hub_z1 + 2, G.REEL_FLANGE_R), cyl(0, 0, hub_z0, hub_z1, G.REEL_HUB_R),
+                 cyl(0, 0, T + 0.5, hub_z0, 6))
+    n = G.N20
+    d_bore = cyl(0, 0, 0, hub_z0, n["shaft_d"] / 2 + 0.1, seg=32) ^ box(-3, n["shaft_flat"] - n["shaft_d"] / 2 + 0.05, -3, 3, 0, hub_z0)
+    body -= d_bore
+    body -= union(box(7, 16, -1.1, 1.1, hub_z0, hub_z1 + 3), cyl(7, 0, hub_z0, hub_z1 + 3, 3.2, seg=32))   # belt-end slot
+    for k in range(3):
+        a = math.radians(90 + 120 * k)
+        body -= cyl(10.5 * math.cos(a), 10.5 * math.sin(a), hub_z0 - 1, hub_z0 + 6, G.PILOT_M3 / 2, seg=24)
+    return body.translate((G.REEL_LOCAL[0], G.REEL_LOCAL[1], 0))
+
+
+def reel_flange():
+    """Lower flange, screwed to the hub with three M3 screws."""
+    f = cyl(0, 0, REEL_Z0, REEL_Z0 + 2, G.REEL_FLANGE_R) - cyl(0, 0, REEL_Z0 - 1, REEL_Z0 + 3, 6.4)
+    for k in range(3):
+        a = math.radians(90 + 120 * k)
+        f -= cyl(10.5 * math.cos(a), 10.5 * math.sin(a), REEL_Z0 - 1, REEL_Z0 + 3, G.CLEAR_M3 / 2, seg=24)
+    return f.translate((G.REEL_LOCAL[0], G.REEL_LOCAL[1], 0))
 
 
 def f_spacer():      # fixed riser under the belt-end sleeve
@@ -98,7 +115,7 @@ def riser_shim():    # goes under a bracket when the workpiece sits on top of th
     tp = G.TOP_PLATE
     s = prism([(0, 0), (tp, 0), (tp, 18), (18, tp), (0, tp)], 0, 6)
     for (x, y) in ((24, 24), (62, 9), (9, 62)):
-        s -= cyl(x, y, -1, 7, 2.6)
+        s -= cyl(x, y, -1, 7, 3.25)
     return s
 
 
@@ -288,7 +305,9 @@ def electronics_lid():
 # =============================================================================
 PARTS = {
     "corner_bracket":   (corner_bracket,   4, (180, 0, 0), "top face down on the bed, fence walls pointing up"),
-    "tail_guide":       (tail_guide,       4, (0, 0, 0),   "flat"),
+    "reel_body":        (reel_body,        4, (180, 0, 0), "big flange down on the bed"),
+    "reel_flange":      (reel_flange,      4, (0, 0, 0),   "flat"),
+    "n20_cup":          (n20_cup,          4, (180, 0, 0), "open end down"),
     "f_spacer":         (f_spacer,         4, (0, 0, 0),   ""),
     "f_sleeve":         (f_sleeve,         4, (0, 0, 0),   ""),
     "k_spacer":         (k_spacer,         4, (0, 0, 0),   "lip up"),

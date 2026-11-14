@@ -6,7 +6,7 @@ Read this once all the way through before starting. Allow a weekend for printing
 
 ## How it works
 
-A stepper motor sits at each corner of the table. Each drives a belt that runs out to the sled, round an idler, and back to a post at the same corner. Slack belt drops off the back of each corner into a bucket. The sled carries the router and the Z axis, and nothing else.
+A stepper motor sits at each corner of the table. Each drives a belt that runs out to the sled, round an idler, and back to a post at the same corner. Slack belt is wound onto a reel at each corner by a small motor, so the whole length stores on the corner unit when you pack away. The sled carries the router and the Z axis, and nothing else.
 
 Naming used throughout: stand at one long edge. That edge is **south**. The corner on your left is **south-west (SW)**. X runs left to right, Y runs away from you.
 
@@ -46,7 +46,9 @@ All four are identical.
 4. Pinch post: add `k_spacer` (lip up), a **625 bearing**, then a nyloc nut with no washer. The bearing must spin.
 5. Fit a **20-tooth pulley** to the motor shaft, grub-screw end down, about 0.5mm clear of the bracket. Its teeth should be level with the bearing. Tighten one grub screw onto the flat of the shaft.
 6. Check the gap: a scrap of belt, teeth against the pulley, should slide between pulley and bearing with light drag. If it jams, ease the bolt hole with a round file. If the belt can lift off the teeth, the gap is too big and that bracket needs reprinting.
-7. Screw on `tail_guide` with two **M3 x 12** screws, slot in line with the gap.
+7. Reel motor: push an **N20 motor** up into the pocket under the bracket, shaft through the small hole. Hold it there with `n20_cup` and two **M3 x 12** screws, wires out through the slot.
+8. Reel: screw `reel_flange` to the hub of `reel_body` with three **M3 x 12** screws, then push the reel onto the motor's D-shaped shaft. It should turn level, clear of the bracket.
+9. Fit a **GX16-6 socket** in the hole in the hanging tab. Solder the four stepper wires to pins 1 to 4 and the two reel motor wires to pins 5 and 6. Wire all four corners the same.
 
 ## 4. Build the sled
 
@@ -68,7 +70,9 @@ All four are identical.
 1. Fit the five drivers to the TinyBee. Set the jumpers under each for 16 microsteps (see the table in the board's manual for your driver type).
 2. Set each driver's current to about 1A (the driver's leaflet gives the voltage to set on the small screw).
 3. Fix the board in `electronics_tray` on M3 standoffs: mark the holes through the board and drill 2.8mm pilots in the tray floor.
-4. Wire as below. Extend the motor leads with the 4-core cable, same colours end to end.
+4. Make five leads from the 6-core cable with a **GX16-6 plug** on each end, pins wired straight through. Drill 16mm holes in the tray wall for five sockets.
+5. Wire the sockets to the board as below. Pins 1 to 4 go to the driver socket, pins 5 and 6 are the reel motor.
+6. Reel motors: connect SW and SE in series with one **120 ohm 5W resistor**, and NE and NW in series with the other. Connect both chains across the board's **HE0** output. If a reel turns the wrong way, swap its two wires.
 
 | Board socket | Goes to |
 |---|---|
@@ -80,6 +84,8 @@ All four are identical.
 | Z- endstop | Z microswitch (signal and ground, the two outer switch tags) |
 | Y- endstop | Touch plate, optional |
 | Power in | 24V supply |
+
+**Always switch off before plugging or unplugging a lead.** Pulling a stepper lead under power can destroy its driver.
 
 Put the tray at the middle of the south edge. Hang the Z motor cable, router flex and vacuum hose from above (a hook in the ceiling and a bungee works), so they never drag on the sled.
 
@@ -114,7 +120,7 @@ In either setup the sled needs support under at least half its base. Along an un
 
 To check any other size before committing: `python3 tools/simulate.py --width 1200 --height 800`.
 
-**Fitting a unit:** push the two fence walls hard against both edges of the corner and drive three wood screws through the top plate.
+**Fitting a unit:** push the two fence walls hard against both edges of the corner. For a board you will reuse, mark the three holes, drill 8mm, hammer **M6 T-nuts** in from underneath, and hold the unit down with M6 bolts and wing nuts so it comes off in seconds. For a one-off sheet, three wood screws with washers do the job.
 
 **Measuring:**
 
@@ -132,8 +138,8 @@ To check any other size before committing: `python3 tools/simulate.py --width 12
 ![Belt path](renders/belt_path.png)
 
 1. Cut four belts. For a full sheet each is 5.6m. `table_config.py` prints the length for your table.
-2. At one end of each, fold 40mm back on itself, teeth meshed, and fix with two small zip ties to make a loop that slips over an `f_sleeve`. Put a zip tie through the other end as a stop.
-3. Thread each corner as in the picture: loop on the post, out round the sled idler with the **smooth side against the idler**, back to the pulley on the **post side**, round the outside of the pulley with the **teeth against it**, between pulley and pinch bearing, through the tail guide, into the bucket.
+2. At one end of each, fold 40mm back on itself, teeth meshed, and fix with two small zip ties to make a loop that slips over an `f_sleeve`. Fold 10mm over at the other end with one zip tie, and slide that end down into the slot in the reel hub.
+3. Thread each corner as in the picture: loop on the post, out round the sled idler with the **smooth side against the idler**, back to the pulley on the **post side**, round the outside of the pulley with the **teeth against it**, between pulley and pinch bearing, and on to the reel. Wind the spare belt onto the reel by hand for now.
 
 Every belt must be threaded the same way round. If one is mirrored, that corner's length will be wrong and the machine will not position properly.
 
@@ -142,8 +148,9 @@ Every belt must be threaded the same way round. If one is mirrored, that corner'
 Connect a laptop by USB and run:
 ```
 pip install pyserial
-python3 tools/belt_setup.py --port /dev/ttyUSB0
+python3 tools/belt_setup.py --port /dev/ttyUSB0 --config firmware/belt-cnc.yaml
 ```
+The reel motors start as soon as the script connects. Each should pull gently in the winding-up direction.
 
 1. **Directions.** With the belts off the sled idlers, type `dirtest`. Each corner should pay belt out, then take it back. Fix any that go the wrong way (the script says how) and repeat.
 2. **Centre.** Quit the script. Hook the belts over the sled idlers. Put a V-bit or a pencil in the sled and stand it on the centre mark, sled edges parallel to the table edges. Switch the controller off and on, then start the script again. The controller assumes it wakes up at the centre.
@@ -152,6 +159,20 @@ python3 tools/belt_setup.py --port /dev/ttyUSB0
 5. **Z.** Type `homez`. The router rises until the switch clicks.
 
 Do steps 2 to 5 each time you set the machine up. They take a few minutes.
+
+## Packing away and setting up again
+
+**Packing away**
+1. Park the sled on the centre mark and raise Z.
+2. Type `pack`. Unhook the belts when asked. Each corner winds its belt onto its reel, leaving about 150mm out.
+3. Type `off`, switch off at the wall, unscrew the five plugs, undo the wing nuts and lift the corner units off.
+
+**Setting up again**
+1. Bolt the corner units back on the same corners (label them), plug in, stand the sled on the centre mark and switch on.
+2. Start the script and type `pack` then `unpack`, skipping the unhook prompt. That tells the controller the belts start wound in, then pays each out to the length it needs.
+3. Hook each belt round its sled idler and onto its post, then snug and test as above.
+
+If the units go back on the same holes in the same board, the table measurements still hold.
 
 ## 10. Set Z zero and draw something
 
@@ -199,7 +220,8 @@ Both clamp in the carriage ring in place of the router, seating on their lip.
 | Squares come out as diamonds | Diagonal D was measured wrongly |
 | Everything is slightly too big or small | Belt scale: run the calibration |
 | Belt jumps teeth at a corner | Pinch gap too wide |
-| Slack belt jams coming back in | Tail snagged in the bucket: use a wider tub, keep it directly under the guide |
+| A reel does not wind, or unwinds | Swap that reel motor's two wires |
+| Reels too weak to take up slack, or belt loops form | Fit a lower resistor (82 ohm). If the motors get hot, fit a higher one |
 | Router sinks when powered off | 8mm-lead screw: park it at the top, or fit the 2mm-lead screw |
 | Sled lifts when plunging | Plunge slower, use an upcut bit, ramp in |
 
@@ -217,6 +239,6 @@ This design has not been built. Before you spend money, know what stands behind 
 **Not checked**
 - A full firmware build and a run on a board. I could not download the build tools here.
 - Any fit that depends on your printer or your particular pulleys and idlers. The pinch gap in step 3.6 is the tightest.
-- How well the slack belt feeds in and out of the buckets. This is the part I trust least.
+- The reels. Their motors are run at low power so the stepper can pull belt off against them. The resistor value is my estimate and may need changing. This is the part I trust least.
 - Accuracy while cutting. Expect about 1mm across a sheet after calibration, better over short distances.
 - The details of the Sidewinder X1. I worked from memory of that model.

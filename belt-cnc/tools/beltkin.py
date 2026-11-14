@@ -57,6 +57,22 @@ class Table:
     def rectangle(cls, width, height):
         return cls([(0, 0), (width, 0), (width, height), (0, height)])
 
+    @classmethod
+    def from_config(cls, path):
+        """Read the corner geometry back out of a FluidNC config written by table_config.py."""
+        import re
+        text = open(path).read()
+        val = lambda key: float(re.search(rf"^\s*{key}:\s*([-\d.]+)", text, re.M).group(1))
+        t = cls.__new__(cls)
+        names = ["sw", "se", "ne", "nw"]
+        t.P = np.array([[val(n + "_pulley_x"), val(n + "_pulley_y")] for n in names])
+        t.F = np.array([[val(n + "_post_x"), val(n + "_post_y")] for n in names])
+        t.pinch = np.array([math.radians(val(n + "_pinch_deg")) for n in names])
+        t.centre = np.array([val("home_x"), val("home_y")])
+        t.theta = t.pinch - PINCH
+        t.C = np.array([t.P[i] - rot(t.theta[i]) @ P_LOCAL for i in range(4)])
+        return t
+
     def post_distances(self):
         """(S, E, N, W, D) between the belt-end posts; D is NW post to SE post."""
         F = self.F

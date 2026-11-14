@@ -60,3 +60,11 @@ CLEAR_M5 = 5.4
 PILOT_M3 = 2.8              # self-tapping M3 into plastic
 PILOT_M5 = 4.5              # self-tapping M5 into plastic
 HEX_M5_AF = 8.2             # M5 hex head / nut across flats, with clearance
+
+# ---- slack-belt reel at each corner (bracket-local frame) --------------------
+REEL_LOCAL = (45.0, -75.0)   # reel axis: outside the sheet, beside the south fence
+REEL_HUB_R = 15.0
+REEL_FLANGE_R = 56.0         # holds 5.5 m of belt (wound radius about 52 mm)
+REEL_CHANNEL = 7.5           # gap between flanges for the 6 mm belt
+N20 = dict(w=12.0, d=10.0, body_len=34.0, shaft_d=3.0, shaft_flat=2.5, shaft_len=10.0)
+N20_POCKET = 3.5             # gearbox face is let this far into the underside of the plate

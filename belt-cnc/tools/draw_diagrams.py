@@ -23,8 +23,9 @@ def belt_points(t, i, bit):
     b0, b1 = alpha - math.pi / 2, av - math.pi / 2
     while b1 < b0: b1 += 2 * math.pi
     arc_i = [I + K.RI * np.array([math.cos(a), math.sin(a)]) for a in np.linspace(b0, b1, 30)]
-    tail_dir = np.array([-math.sin(t.pinch[i]), math.cos(t.pinch[i])])
-    tail = [arc_p[0] + tail_dir * 55, arc_p[0]]
+    R = t.C[i] + K.rot(t.theta[i]) @ np.array(G.REEL_LOCAL)
+    v = R - arc_p[0]; n = np.array([v[1], -v[0]]) / np.linalg.norm(v)
+    tail = [R + n * 38, arc_p[0]]
     return np.array(tail + arc_p + arc_i + [F])
 
 
@@ -38,10 +39,10 @@ def corner_diagram():
     px, py = G.P_LOCAL; fx, fy = G.F_LOCAL; kx, ky = G.K_LOCAL
     ax.add_patch(Circle((px, py), 9, fc="#c9c9c9", ec="k")); ax.add_patch(Circle((px, py), K.RP, fc="#8a8a8a", ec="k"))
     ax.add_patch(Circle((kx, ky), 8, fc="#d9d9d9", ec="k")); ax.add_patch(Circle((fx, fy), 5, fc="#e06a5a", ec="k"))
-    c, (ux, uy), ang = P._tail_frame(); n = np.array([-uy, ux]); u = np.array([ux, uy])
-    for v in (3.2, -3.2):
-        a, b = np.array(c) + n * v - u * 9, np.array(c) + n * v + u * 9
-        ax.plot([a[0], b[0]], [a[1], b[1]], color="#e8902a", lw=7, solid_capstyle="round")
+    rx, ry = G.REEL_LOCAL
+    ax.add_patch(Polygon([(-10, -30), (rx + 17, -30), (rx + 17, ry - 17), (-10, ry - 17)], fc="#9cc3ea", ec="#3b78b5", alpha=.7))
+    ax.add_patch(Circle((rx, ry), G.REEL_FLANGE_R, fc="#f4b266", ec="#a8641a", alpha=.55))
+    ax.add_patch(Circle((rx, ry), 38, fc="none", ec="#111", lw=1.2)); ax.add_patch(Circle((rx, ry), G.REEL_HUB_R, fc="#e8902a", ec="#a8641a"))
     bit = (150, 105)
     pts = belt_points(t, 0, bit)
     ax.plot(pts[:, 0], pts[:, 1], color="#111", lw=2.2)
@@ -50,12 +51,12 @@ def corner_diagram():
     ann = dict(arrowprops=dict(arrowstyle="->", color="#333"), fontsize=10.5)
     ax.annotate("drive pulley on the motor\n(belt teeth face the pulley)", (px - 6, py - 4), (-150, -62), **ann)
     ax.annotate("pinch bearing\nholds the belt on the teeth", (kx + 3, ky - 6), (-20, -92), **ann)
-    ax.annotate("tail guide\nslack belt leaves here\nand drops into a bucket", (c[0] + 8, c[1] - 6), (60, -60), **ann)
+    ax.annotate("reel with its own small motor\nwinds up the slack belt", (rx + 30, ry + 40), (95, -20), **ann)
     ax.annotate("belt-end post\n(loop zip-tied round the sleeve)", (fx - 3, fy + 4), (-155, 40), **ann)
     ax.annotate("idler on the sled\n(smooth back of the belt\nagainst the idler)", (I[0] + 6, I[1] + 6), (140, 150), **ann)
     ax.text(75, 15, "run 1", fontsize=10, color="#111", rotation=27)
     ax.text(40, 62, "run 2", fontsize=10, color="#111", rotation=27)
-    ax.set_xlim(-165, 215); ax.set_ylim(-110, 215); ax.set_aspect("equal"); ax.axis("off")
+    ax.set_xlim(-165, 215); ax.set_ylim(-140, 215); ax.set_aspect("equal"); ax.axis("off")
     ax.set_title("Belt path at the south-west corner, seen from above\n(the other three corners are the same, turned a quarter turn each)")
     fig.tight_layout(); fig.savefig(os.path.join(OUT, "belt_path.png")); plt.close(fig)
 

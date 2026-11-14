@@ -32,7 +32,10 @@ Print everything first (see BUILD.md step 1), then strip it. I have not seen you
 | MKS TinyBee V1.0 controller board | 1 | £20 |
 | TMC2209 stepper driver modules | 5 | £15 |
 | MicroSD card, any size | 1 | £4 |
-| 4-core cable, 0.5mm² (alarm cable is fine) | 15m | £10 |
+| 6-core cable, 0.5mm² (alarm cable is fine) | 15m | £12 |
+| GX16-6 locking plug and socket pairs ("aviation connectors") | 5 pairs | £8 |
+| N20 geared motor, 6V, about 100 rpm, 3mm D shaft | 4 | £10 |
+| Resistor, 120 ohm, 5W | 2 | £2 |
 | Microswitch, lever type (KW11 style, 9.5mm hole pitch) | 2 | £2 |
 | JST-XH or Dupont connector kit | 1 | £5 |
 | Switched extension lead (your emergency stop) | 1 | £8 |
@@ -71,7 +74,7 @@ Print everything first (see BUILD.md step 1), then strip it. I have not seen you
 | M3 x 10 cap screws + M3 nuts | 4 + 4 | Lead screw nut |
 | M3 x 12 pan-head screws | 30 | Self-tapped into plastic: guides, bearings, rods, lid |
 | M2 x 10 self-tapping screws | 2 | Z switch |
-| Wood screws, 4 x 30mm countersunk | 12 | Corner brackets |
+| M6 x 40 bolts, wing nuts, penny washers, M6 T-nuts | 12 each | Corner brackets, quick release. Wood screws with washers also work. |
 
 An M3 and M5 assortment box covers all of this for about £12.
 
@@ -83,7 +86,6 @@ An M3 and M5 assortment box covers all of this for about £12.
 | Router bits: 1/8" and 1/4" single-flute upcut, 60° V-bit | 3 to 4 | £15 |
 | PETG filament | 2kg | £28 |
 | XPS foam insulation board, 50mm, to lie under the sheet | 1 to 2 | £12 |
-| Buckets or tubs, one per corner, to catch the slack belt | 4 | free |
 | Scrap ply or timber for the corner wings (optional, see BUILD.md) | 4 pieces about 300 x 250mm | free |
 
 ### Optional tools
@@ -95,7 +97,7 @@ An M3 and M5 assortment box covers all of this for about £12.
 
 ## Rough total
 
-About £230 new, on top of the donor printer. That leaves headroom under £500 for a laser module and mistakes.
+About £260 new, on top of the donor printer. That leaves headroom under £500 for a laser module and mistakes.
 
 ## Printed parts
 
@@ -103,8 +105,10 @@ All STL files are in `stl/`, already turned the right way up for printing. None 
 
 | File | Qty | Notes |
 |---|---|---|
-| `corner_bracket.stl` | 4 | Top face on the bed, fence walls up. 5 walls, 50% infill. |
-| `tail_guide.stl` | 4 | |
+| `corner_bracket.stl` | 4 | 142 x 176mm. Top face on the bed, fence walls up. 5 walls, 50% infill. |
+| `reel_body.stl` | 4 | Big flange on the bed. |
+| `reel_flange.stl` | 4 | |
+| `n20_cup.stl` | 4 | Holds the reel motor. |
 | `f_spacer.stl` | 4 | |
 | `f_sleeve.stl` | 4 | Must turn freely on an M5 bolt. |
 | `k_spacer.stl` | 4 | Small lip faces up. |
@@ -121,4 +125,4 @@ All STL files are in `stl/`, already turned the right way up for printing. None 
 | `riser_shim.stl` | as needed | 6mm lifts for a corner unit, see BUILD.md step 7. |
 | `electronics_tray.stl`, `electronics_lid.stl` | 1 each | |
 
-Settings for everything unless noted: PETG, 0.2mm layers, 4 walls, 40% infill. About 0.9kg of filament for one full set. Print one spare each of the small spacers and sleeves while the printer still exists.
+Settings for everything unless noted: PETG, 0.2mm layers, 4 walls, 40% infill. About 1.1kg of filament for one full set. Print one spare each of the small spacers and sleeves while the printer still exists.

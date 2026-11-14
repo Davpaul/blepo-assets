@@ -91,9 +91,32 @@ class Link:
 
 
 class Setup:
-    def __init__(self, link):
+    def __init__(self, link, config=None):
         self.l = link
         self.trim = dict.fromkeys(CORNERS, 0.0)
+        self.config = config
+        self.l.send("M8", quiet=True)          # reel motors on, so slack is always wound up
+
+    def cmd_pack(self, leave=150.0):
+        """Wind every belt in until only `leave` mm is left hanging out of each corner."""
+        if not self.config:
+            print("   start the script with --config firmware/belt-cnc.yaml to use pack and unpack")
+            return
+        import beltkin as K
+        t = K.Table.from_config(self.config)
+        out = K.lengths(t, t.centre)
+        input("   Unhook all four belts from the sled and the posts, lay them straight, then press Enter ...")
+        for c, length in zip(CORNERS, out):
+            self.set_trim(c, -(length - leave))
+        self.apply(feed=3000)
+        print("   Belts are wound in. Type  off , switch off, then unplug the leads.")
+
+    def cmd_unpack(self):
+        """Pay every belt out to the length it needs with the sled on the centre mark."""
+        for c in CORNERS:
+            self.set_trim(c, 0.0)
+        self.apply(feed=3000)
+        print("   Belts are out. Hook each one round its sled idler and onto its post, then snug them.")
 
     def apply(self, feed=300):
         """Trims take effect on the next move, so send a move to where we already are."""
@@ -119,7 +142,7 @@ class Setup:
     def cmd_take(self, corner, mm):
         for c in (CORNERS if corner == "all" else [corner]):
             self.set_trim(c, self.trim[c] - mm)
-        self.apply()
+        self.apply(feed=600)
         self.show()
 
     def cmd_dirtest(self):
@@ -174,8 +197,14 @@ class Setup:
                     self.cmd_square(float(words[1]) if len(words) > 1 else 300.0, float(words[2]) if len(words) > 2 else 800.0)
                 elif w == "homez":
                     self.l.send("$HZ", timeout=60); self.show()
+                elif w == "pack":
+                    self.cmd_pack()
+                elif w == "unpack":
+                    self.cmd_unpack()
+                elif w == "reels":
+                    self.l.send("M8" if (len(words) < 2 or words[1] == "on") else "M9")
                 elif w == "off":
-                    self.l.send("$MD"); print("   motors released")
+                    self.l.send("M9"); self.l.send("$MD"); print("   motors and reels released")
                 elif w == "raw":
                     for ln in self.l.send(" ".join(words[1:]).upper() if words[1:] else "$I"):
                         print("   " + ln)
@@ -194,6 +223,9 @@ class Setup:
   zero             put all trims back to nothing
   centre           tell the controller "the bit is over the centre mark right now"
   square 300 800   trace a 300 mm square at 800 mm/min and come back (tension test)
+  pack             wind all the belts onto their reels for putting the machine away
+  unpack           pay the belts back out to the right length for the centre position
+  reels off        stop the reel motors (reels on to start them again)
   homez            raise the router to its top switch
   status           show position and trims
   off              release the motors
@@ -206,10 +238,11 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--port"); ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--host"); ap.add_argument("--tcp-port", type=int, default=23)
+    ap.add_argument("--config", help="the belt-cnc.yaml in use; needed for pack and unpack")
     a = ap.parse_args()
     if not a.port and not a.host:
         ap.error("give --port (USB) or --host (Wi-Fi)")
-    Setup(Link(a.port, a.baud, a.host, a.tcp_port)).run()
+    Setup(Link(a.port, a.baud, a.host, a.tcp_port), a.config).run()
 
 
 if __name__ == "__main__":

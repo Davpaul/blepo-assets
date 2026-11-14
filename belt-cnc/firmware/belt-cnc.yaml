@@ -141,6 +141,13 @@ sdcard:
   cs_pin: gpio.5
   card_detect_pin: NO_PIN
 
+# The four reel motors that wind up slack belt are switched by the HE0 output.
+# M8 turns them on, M9 off. tools/belt_setup.py does this for you.
+coolant:
+  flood_pin: I2SO.17
+  mist_pin: NO_PIN
+  delay_ms: 0
+
 probe:
   pin: gpio.32:low:pu             # Y- endstop socket: touch plate for setting Z zero (optional)
   check_mode_start: false

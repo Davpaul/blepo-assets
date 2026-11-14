@@ -18,7 +18,7 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 
 ## Design in brief
 
-- **Drive:** each corner has a motor with a toothed pulley. The belt goes pulley, idler on the sled, back to a post at the corner. That doubling halves the load on the motor and doubles the stiffness. Slack belt falls into a bucket.
+- **Drive:** each corner has a motor with a toothed pulley. The belt goes pulley, idler on the sled, back to a post at the corner. That doubling halves the load on the motor and doubles the stiffness. A small motor at each corner winds the slack onto a reel, so the belts store on the corner units.
 - **Sled:** 220mm square, with a clamp ring for a 65mm router on a 38mm Z axis.
 - **Tools:** router, floating pen holder (6 to 20mm pens), laser holder (33 to 40mm modules). All clamp in the same ring.
 - **Controller:** MKS TinyBee running FluidNC, plus a module in `firmware/` that turns X and Y into four belt lengths.
@@ -30,7 +30,7 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 | Script | Use |
 |---|---|
 | `tools/table_config.py` | Five measurements in, controller settings out |
-| `tools/belt_setup.py` | Check motor directions, snug the belts, run a test square |
+| `tools/belt_setup.py` | Check motor directions, snug the belts, run a test square, wind the belts in for storage |
 | `tools/simulate.py` | Map where on a given table the machine can hold the router |
 | `tools/make_test_pattern.py`, `tools/calibrate.py` | Mark test dots, then correct scale from measurements of them |
 | `tools/beltkin.py` | The belt geometry model the others share |

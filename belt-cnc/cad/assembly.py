@@ -21,7 +21,7 @@ def corner_hw():
 def corner_assembly():
     fx, fy = G.F_LOCAL; kx, ky = G.K_LOCAL
     motor, shaft, pulley, bearing, sheet = corner_hw()
-    return [(sheet, (.85, .75, .55), 1), (P.corner_bracket(), BLUE, 1), (P.tail_guide(), ORANGE, 1),
+    return [(sheet, (.85, .75, .55), 1), (P.corner_bracket(), BLUE, 1), (P.reel_body(), ORANGE, 1), (P.reel_flange(), ORANGE, 1), (P.n20_cup(), GREEN, 1),
             (P.f_spacer().translate((fx, fy, T)), GREEN, 1), (P.f_sleeve().translate((fx, fy, T + 8)), RED, 1),
             (P.k_spacer().translate((kx, ky, T)), GREEN, 1), (bearing, GREY, 1), (motor, DARK, 1), (union(shaft, pulley), GREY, 1)]
 
@@ -63,11 +63,14 @@ def checks():
                         ("shoe/base", shoe, base), ("bridge/zmotor", bridge, zmotor)):
             out.append((f"z={cz:.0f} {n}", clash(a, b)))
     motor, shaft, pulley, bearing, sheet = corner_hw()
-    br, tg = P.corner_bracket(), P.tail_guide()
+    br, tg = P.corner_bracket(), union(P.reel_body(), P.reel_flange())
+    cup = P.n20_cup()
+    n20 = box(G.REEL_LOCAL[0] - 6, G.REEL_LOCAL[0] + 6, G.REEL_LOCAL[1] - 5, G.REEL_LOCAL[1] + 5, G.N20_POCKET - 34, G.N20_POCKET)
+    socket = box(2, 18, G.REEL_LOCAL[1] - 17, G.REEL_LOCAL[1] + 5, -26, -10)
     fx, fy = G.F_LOCAL; kx, ky = G.K_LOCAL
     fs, ks = P.f_spacer().translate((fx, fy, T)), P.k_spacer().translate((kx, ky, T))
     for n, a, b in (("bracket/motor", br, motor), ("bracket/sheet", br, sheet), ("bracket/pulley", br, pulley), ("pulley/bearing", pulley, bearing),
-                    ("tailguide/pulley", tg, pulley), ("tailguide/bearing", tg, bearing), ("tailguide/bracket", tg, br),
+                    ("reel/pulley", tg, pulley), ("reel/bearing", tg, bearing), ("reel/bracket", tg, br), ("reel/sheet", tg, sheet), ("cup/bracket", cup, br), ("cup/motor", cup, motor), ("n20/bracket", n20, br), ("n20/cup", n20, cup), ("socket/motor", socket, motor), ("socket/cup", socket, cup), ("reel/kspacer", tg, ks), ("reel/fspacer", tg, fs),
                     ("fspacer/pulley", fs, pulley), ("kspacer/pulley", ks, pulley), ("kspacer/fspacer", ks, fs), ("motor/sheet", motor, sheet)):
         out.append((f"corner {n}", clash(a, b)))
     return out

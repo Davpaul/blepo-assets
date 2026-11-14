@@ -35,9 +35,9 @@ namespace Kinematics {
             handler.item(names[i][3], _fy[i]);
             handler.item(names[i][4], _pinch_deg[i]);
             // Extra belt paid out (+) or taken in (-) at this corner, in mm of belt.
-            // Changed at run time by tools/belt_setup.py to snug the belts; it takes
-            // effect on the next move. Not meant to be saved in the config file.
-            handler.item(names[i][5], _trim[i], -200.0f, 200.0f);
+            // Changed at run time by tools/belt_setup.py to snug the belts, and to wind them
+            // right in for packing away; it takes effect on the next move. Not meant to be saved in the config file.
+            handler.item(names[i][5], _trim[i], -8000.0f, 8000.0f);
         }
         // Where the bit is when the controller boots, normally the table centre.
         handler.item("home_x", _home_x);
