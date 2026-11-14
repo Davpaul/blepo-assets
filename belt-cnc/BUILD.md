@@ -169,7 +169,7 @@ Do steps 2 to 5 each time you set the machine up. They take a few minutes.
 
 **Setting up again**
 1. Bolt the corner units back on the same corners (label them), plug in, stand the sled on the centre mark and switch on.
-2. Start the script and type `pack` then `unpack`, skipping the unhook prompt. That tells the controller the belts start wound in, then pays each out to the length it needs.
+2. Start the script and type `stowed`, then `unpack`. The first tells the controller the belts are wound in, without moving anything. The second pays each belt out to the length it needs.
 3. Hook each belt round its sled idler and onto its post, then snug and test as above.
 
 If the units go back on the same holes in the same board, the table measurements still hold.

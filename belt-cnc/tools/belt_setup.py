@@ -111,6 +111,18 @@ class Setup:
         self.apply(feed=3000)
         print("   Belts are wound in. Type  off , switch off, then unplug the leads.")
 
+    def cmd_stowed(self, leave=150.0):
+        """After power-up with the belts still wound in: tell the controller so, without moving anything."""
+        if not self.config:
+            print("   start the script with --config firmware/belt-cnc.yaml to use this")
+            return
+        import beltkin as K
+        t = K.Table.from_config(self.config)
+        for c, length in zip(CORNERS, K.lengths(t, t.centre)):
+            self.set_trim(c, -(length - leave))
+        self.l.send("$HX"); self.l.send("$HY")
+        print("   Noted: belts are wound in. Now type  unpack .")
+
     def cmd_unpack(self):
         """Pay every belt out to the length it needs with the sled on the centre mark."""
         for c in CORNERS:
@@ -199,6 +211,8 @@ class Setup:
                     self.l.send("$HZ", timeout=60); self.show()
                 elif w == "pack":
                     self.cmd_pack()
+                elif w == "stowed":
+                    self.cmd_stowed()
                 elif w == "unpack":
                     self.cmd_unpack()
                 elif w == "reels":
@@ -224,6 +238,7 @@ class Setup:
   centre           tell the controller "the bit is over the centre mark right now"
   square 300 800   trace a 300 mm square at 800 mm/min and come back (tension test)
   pack             wind all the belts onto their reels for putting the machine away
+  stowed           say this first when you switch on with the belts still wound in
   unpack           pay the belts back out to the right length for the centre position
   reels off        stop the reel motors (reels on to start them again)
   homez            raise the router to its top switch

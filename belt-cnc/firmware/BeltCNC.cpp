@@ -248,7 +248,11 @@ namespace Kinematics {
         float now[MAX_N_AXIS];
         motors_to_cartesian(now, get_motor_pos(), n_axis);
 
-        bool xy_declared = fabsf(mpos[X_AXIS] - now[X_AXIS]) > 0.05f || fabsf(mpos[Y_AXIS] - now[Y_AXIS]) > 0.05f;
+        // "$HX" then "$HY" put both coordinates on the home position: that always re-bases
+        // the belts, even if the current belt lengths make no sense (for example just after
+        // power-up with the belts still wound onto their reels).
+        bool at_home     = fabsf(mpos[X_AXIS] - _home_x) < 0.01f && fabsf(mpos[Y_AXIS] - _home_y) < 0.01f;
+        bool xy_declared = at_home || fabsf(mpos[X_AXIS] - now[X_AXIS]) > 0.05f || fabsf(mpos[Y_AXIS] - now[Y_AXIS]) > 0.05f;
         if (!transform_cartesian_to_motors(motors, mpos)) {
             log_error("BeltCNC: cannot set that position");
             return;
