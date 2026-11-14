@@ -135,7 +135,7 @@ I can't reach your home network from here. When something looks off, paste me:
 | Mainsail: "mcu: Unable to connect" | Printer off, or it needs flashing: `klipper-deck stop`, then `klipper-deck flash` |
 | Mainsail: "protocol error" / "version mismatch" | `klipper-deck flash` |
 | "Lost communication with MCU" mid-move | Unplug the touch screen cable from the mainboard (Step 3) |
-| Can't open the page from the Mac | Use the IP that `klipper-deck status` shows, not `steamdeck.local`. Both devices must be on the same Wi-Fi |
+| Can't open the page from the Mac | Use the IP that `klipper-deck status` shows, not `steamdeck.local`. Both devices must be on the same Wi-Fi. If it loads on the Deck but not the Mac, the Deck's firewall is blocking it: run `sudo firewall-cmd --permanent --add-service=http --add-port=7125/tcp && sudo firewall-cmd --reload` |
 | After a SteamOS update, USB or port 80 stops working | Run `install.sh` again. Your config and files are kept |
 
 ## Later: both printers at once

@@ -37,6 +37,14 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 echo "net.ipv4.ip_unprivileged_port_start=80" | sudo tee /etc/sysctl.d/99-klipper-deck.conf >/dev/null
 sudo sysctl -q -w net.ipv4.ip_unprivileged_port_start=80
+# SteamOS can have firewalld running, which blocks other devices from reaching the web page
+if command -v firewall-cmd >/dev/null && sudo firewall-cmd --state >/dev/null 2>&1; then
+    sudo firewall-cmd -q --permanent --add-service=http
+    sudo firewall-cmd -q --permanent --add-port=8080/tcp
+    sudo firewall-cmd -q --permanent --add-port=7125/tcp
+    sudo firewall-cmd -q --reload
+    echo "Opened firewall for the web page (80, 8080) and Moonraker (7125)."
+fi
 echo "Done."
 
 step "5/6 Building the Klipper container (the slow bit, 5-15 min)"
