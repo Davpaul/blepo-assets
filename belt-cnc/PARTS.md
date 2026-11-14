@@ -84,7 +84,7 @@ An M3 and M5 assortment box covers all of this for about £12.
 |---|---|---|
 | Trim router, 65mm body (Katsu or Makita RT0700C) | 1 | £40 |
 | Router bits: 1/8" and 1/4" single-flute upcut, 60° V-bit | 3 to 4 | £15 |
-| PETG filament | 2kg | £28 |
+| PETG filament | 2kg (3kg to allow for reprints) | £28 to £42 |
 | XPS foam insulation board, 50mm, to lie under the sheet | 1 to 2 | £12 |
 | Scrap ply or timber for the corner wings (optional, see BUILD.md) | 4 pieces about 300 x 250mm | free |
 
@@ -129,4 +129,4 @@ All STL files are in `stl/`, already turned the right way up for printing. None 
 | `riser_shim.stl` | as needed | 6mm lifts for a corner unit, see BUILD.md step 7. |
 | `electronics_tray.stl`, `electronics_lid.stl` | 1 each | |
 
-Settings for everything unless noted: PETG, 0.2mm layers, 4 walls, 40% infill. About 1.1kg of filament for one full set. Print one spare each of the small spacers and sleeves while the printer still exists.
+Settings for everything unless noted: PETG, 0.2mm layers, 4 walls, 40% infill. About 1.5kg of filament for one full set, so buy 2kg, or 3kg to allow for reprints. Print one spare each of the small spacers and sleeves while the printer still exists.

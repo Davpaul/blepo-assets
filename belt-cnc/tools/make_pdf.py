@@ -449,7 +449,7 @@ def build():
         "ABS and ASA are strong but warp on large flat parts such as the sled base.")
     d.table([["Setting", "Value"], ["Nozzle / bed", "235 to 245 C / 75 to 80 C"], ["Layer height", "0.2mm, 0.4mm nozzle"],
              ["Walls", "4 (5 for corner brackets and the Z carriage)"], ["Infill", "40% (50% for corner brackets and the Z carriage)"],
-             ["Supports", "None needed"], ["Fan", "30 to 50%"], ["Amount", "About 1.1kg. Buy 2kg."]], [45, 135])
+             ["Supports", "None needed"], ["Fan", "30 to 50%"], ["Amount", "About 1.5kg for a full set. Buy 2kg, or 3kg to allow for reprints."]], [45, 135])
     d.h2("What to print")
     d.p("Print everything before you take the printer apart, plus one spare of each small spacer. The files in the stl folder are "
         "already turned the right way up.")
