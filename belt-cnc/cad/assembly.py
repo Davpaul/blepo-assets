@@ -66,7 +66,7 @@ def checks():
     br, tg = P.corner_bracket(), union(P.reel_body(), P.reel_flange())
     cup = P.n20_cup()
     n20 = box(G.REEL_LOCAL[0] - 6, G.REEL_LOCAL[0] + 6, G.REEL_LOCAL[1] - 5, G.REEL_LOCAL[1] + 5, G.N20_POCKET - 34, G.N20_POCKET)
-    socket = box(2, 18, G.REEL_LOCAL[1] - 17, G.REEL_LOCAL[1] + 5, -26, -10)
+    socket = box(-10, 30, G.REEL_LOCAL[1] - 17, G.REEL_LOCAL[1] + 3, -42, -5)   # RJ45 breakout board behind its panel
     fx, fy = G.F_LOCAL; kx, ky = G.K_LOCAL
     fs, ks = P.f_spacer().translate((fx, fy, T)), P.k_spacer().translate((kx, ky, T))
     for n, a, b in (("bracket/motor", br, motor), ("bracket/sheet", br, sheet), ("bracket/pulley", br, pulley), ("pulley/bearing", pulley, bearing),

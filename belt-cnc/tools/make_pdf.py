@@ -153,12 +153,17 @@ def belt(c, x, y):
         c.line((x + i * 2) * mm, y * mm, (x + i * 2) * mm, (y + 6) * mm)
 
 
-def gx16(c, x, y):
-    _circ(c, x + 10, y + 10, 10, (0.75, 0.75, 0.78)); _circ(c, x + 10, y + 10, 8, (0.2, 0.2, 0.22))
-    for i in range(5):
-        a = math.radians(90 + 72 * i)
-        _circ(c, x + 10 + 4.6 * math.cos(a), y + 10 + 4.6 * math.sin(a), 0.9, BRASS)
-    _circ(c, x + 10, y + 10, 0.9, BRASS)
+def rj45(c, x, y):
+    """RJ45 breakout board: socket plus a row of eight screw terminals. Sizes vary by seller."""
+    _rect(c, x, y, 36, 30, (0.1, 0.45, 0.25), r=1)
+    _rect(c, x + 10, y + 12, 16, 16, (0.75, 0.75, 0.78)); _rect(c, x + 12.2, y + 20, 11.6, 8, (0.15, 0.15, 0.17))
+    for i in range(8):
+        _rect(c, x + 2.5 + i * 3.9, y + 2, 3.5, 7, (0.25, 0.55, 0.85)); _circ(c, x + 4.25 + i * 3.9, y + 5.5, 1.1, STEEL)
+
+
+def wago(c, x, y):
+    _rect(c, x, y, 13, 18, (0.92, 0.92, 0.9), r=1)
+    _rect(c, x + 1.5, y + 11, 4.5, 6.5, ORANGE); _rect(c, x + 7, y + 11, 4.5, 6.5, ORANGE)
 
 
 def rod(length, d, threaded=False):
@@ -203,7 +208,8 @@ HW = {
     "switch": ("Microswitch", simple(switch, 20, 16)),
     "res":    ("120 ohm 5W resistor", simple(resistor, 42, 10)),
     "belt":   ("GT2 belt, 6 wide, teeth every 2mm", simple(belt, 50, 6)),
-    "gx16":   ("GX16-6 socket (16mm hole)", simple(gx16, 20, 20)),
+    "rj45":   ("RJ45 breakout board (size varies)", simple(rj45, 36, 30)),
+    "wago":   ("Lever connector", simple(wago, 13, 18)),
 }
 
 
@@ -416,21 +422,22 @@ def build():
     d.hardware([("m5nyl", 12), ("m5nut", 4), ("m5wash", 10), ("m6wash", 12), ("wing", 12), ("tnut", 12)], "Nuts and washers")
     d.hardware([("625", 4), ("lm8uu", 4), ("pulley", 4), ("idler", 4), ("tnutT8", 1), ("coupler", 1)], "Bearings and drive parts")
     d.hardware([("rod", 2), ("screw", 1)], "Z axis shafts")
-    d.hardware([("n20", 4), ("switch", 1), ("res", 2), ("gx16", 5), ("belt", 0)], "Electrical parts and belt")
+    d.hardware([("n20", 4), ("switch", 1), ("res", 2), ("rj45", 10), ("wago", 6), ("belt", 0)], "Electrical parts and belt")
 
     # ---- tools, safety
     d.newpage()
     d.h1("Before you start")
     d.h2("Tools")
     d.bullets(["Hex keys 1.5 to 4mm, small screwdrivers, 8mm and 10mm spanners",
-               "Hacksaw and a round file", "Drill with 3mm, 8mm and 16mm bits", "Tape measure, pencil, string",
-               "Soldering iron (temperature controlled), solder, heat-shrink tubing, wire strippers, side cutters",
+               "Hacksaw and a round file", "Drill with 3mm and 8mm bits", "Tape measure, pencil, string",
+               "Small flat screwdriver (2 to 2.5mm), wire strippers, side cutters",
                "Multimeter with a continuity beep", "A laptop with Python 3 for the setup scripts"])
     d.h2("Safety")
     d.bullets(["The router is a mains tool spinning at 30,000 rpm. Wear eye and ear protection. Keep hands off the table while it runs.",
                "Plug the router and the power supply into one switched extension lead within arm's reach. That switch is your emergency stop.",
                "Never leave the machine cutting unattended.",
-               "Never plug or unplug a motor lead with the power on. It can destroy that motor's driver.",
+               "Never plug or unplug a lead with the power on. It can destroy that motor's driver.",
+               "Never plug the machine's network leads into a computer or router. They carry 24V motor current. Label them CNC ONLY.",
                "The donor printer's heated bed is mains powered. Unplug the printer and wait 10 minutes before opening it. Do not reuse the bed.",
                "A laser on an open table can blind. Wear glasses rated for its wavelength and keep other people out of the room."])
     d.h2("Tips for a first build")
@@ -444,7 +451,7 @@ def build():
     d.newpage()
     d.h1("1. Print the parts")
     d.h2("Which filament")
-    d.p("PETG for every part. It is strong, slightly flexible so clamps and press fits do not crack, and it copes with a warm "
+    d.p("Plain PETG for every part. It is strong, slightly flexible so clamps and press fits do not crack, and it copes with a warm "
         "motor. PLA is stiffer but brittle and creeps under a clamped load, so the router clamp would work loose. "
         "ABS and ASA are strong but warp on large flat parts such as the sled base.")
     d.table([["Setting", "Value"], ["Nozzle / bed", "235 to 245 C / 75 to 80 C"], ["Layer height", "0.2mm, 0.4mm nozzle"],
@@ -467,7 +474,7 @@ def build():
              ["thumb_knob", "4", ""],
              ["laser_caddy, laser_shim", "1 / as needed", "Only for a laser."],
              ["riser_shim", "as needed", "See section 7."],
-             ["electronics_tray, electronics_lid", "1 each", ""]], [58, 24, 98])
+             ["electronics_tray, electronics_lid", "1 each", "225 x 155mm."]], [58, 24, 98])
     d.note("Test fits as you print: a 65mm router body slides into z_carriage with the clamp open; f_sleeve spins on an M5 bolt; "
            "an 8mm rod pushes snugly into the sockets of sled_base and z_bridge. If a fit is wrong, reprint now while you still have a printer.")
 
@@ -504,14 +511,14 @@ def build():
     d.step(7, "Check the gap. Slide a scrap of belt, teeth against the pulley, between pulley and bearing. It should pass with light "
               "drag. If it jams, ease the bolt hole with a round file. If the belt can lift clear of the teeth, the gap is too wide: reprint that bracket.")
 
-    d.h2("3c. Reel and socket")
-    d.hardware([("n20", 1), ("m3x12", 5), ("gx16", 1)], "For each corner unit, plus n20_cup, reel_body and reel_flange:")
+    d.h2("3c. Reel")
+    d.hardware([("n20", 1), ("m3x12", 5)], "For each corner unit, plus n20_cup, reel_body and reel_flange:")
     d.image("step_corner_4.png", 170, 66)
     d.step(8, "Push the N20 motor up into the small rectangular pocket under the bracket so its shaft comes up through the hole. "
               "Slide n20_cup over it and fix with two M3 x 12 screws. The wires come out through the slot.")
     d.step(9, "Screw reel_flange (the plain disc) to the hub of reel_body with three M3 x 12 screws.")
     d.step(10, "Push the reel onto the motor's D-shaped shaft, flat to flat. It should turn level, clear of the bracket.")
-    d.step(11, "Fit a GX16-6 socket in the round hole in the tab that hangs down, nut on the back. It is wired in section 5.")
+    d.step(11, "The panel that hangs down, with the grid of holes, takes a network breakout board. That is fitted and wired in section 5.")
 
     # ---- sled
     d.newpage()
@@ -549,46 +556,51 @@ def build():
     d.newpage()
     d.h1("5. Wiring")
     d.image("wiring_overview.png", 180, 105)
-    d.p("One board in a tray drives five motors. Each corner unit joins the tray by one 6-core lead with a screw-locking plug on each end. "
-        "The sled has a fifth lead. Everything you wire is 24V or less and cannot shock you. Never open the power supply.")
-    d.h2("How to solder a wire into a connector pin")
-    d.p("The connectors have a small hollow cup on the back of each pin. Practise on a spare first.")
-    d.step(1, "Thread the plug's outer shell onto the cable first. It will not go on afterwards.")
-    d.step(2, "Strip 4mm of insulation and twist the strands. Touch the iron to the bare wire and feed in a little solder until it turns silver.")
-    d.step(3, "Slide 15mm of heat-shrink onto the wire and push it well back from the heat.")
-    d.step(4, "Heat the cup for two seconds and feed in solder until it is half full.")
-    d.step(5, "Reheat the cup until the solder is shiny and liquid, push the wire in, remove the iron, and hold dead still for three seconds.")
-    d.step(6, "Tug the wire to test it. Slide the heat-shrink over the joint and warm it until it grips.")
-    d.note("A good joint is shiny and smooth. Dull and lumpy means it moved while cooling: reheat it. Clean the iron tip on a damp sponge every few joints.")
-    d.image("wiring_pinout.png", 180, 72)
+    d.p("One main board in a tray drives five motors. Each corner unit joins the tray by an ordinary network lead, and the sled has a fifth. "
+        "At each end of every lead is a small breakout board: a network socket with eight numbered screw terminals. Every wire goes under a screw, "
+        "so there is almost no soldering. Everything you wire is 24V or less and cannot shock you. Never open the power supply.")
+    d.hardware([("rj45", 10), ("wago", 6), ("res", 2)], "Wiring parts (life size; breakout boards vary by seller):")
+    d.h2("How to put a wire in a screw terminal")
+    d.step(1, "Strip 6mm of insulation and twist the strands tightly so none stray.")
+    d.step(2, "Undo the terminal screw, push the bare end fully in so no copper shows outside, and tighten firmly.")
+    d.step(3, "Tug the wire. It must not pull out. Thin wires hold better folded double.")
+    d.note("One stray strand touching the next terminal causes faults that are miserable to find. Look closely at each one. Do one board completely, test it, then do the next.")
+    d.image("wiring_pinout.png", 180, 86)
+    d.note("The second pair goes on terminals 3 and 6, not 3 and 4. That matches how the wires are twisted together inside a network lead.", label="Watch out")
     d.h2("Finding a stepper's wire pairs")
     d.p("A stepper has four wires that make two pairs. Set the multimeter to the continuity beep. Touch one probe to any wire and try the "
-        "other three: the one that beeps is its partner. The remaining two are the other pair. Colours are not reliable.")
+        "other three: the one that beeps is its partner. The remaining two are the other pair. Colours are not reliable. "
+        "It does not matter which pair goes on 1 and 2.")
+    d.h2("The leads")
+    d.bullets(["Corners: any network lead that reaches, about 2m for the near corners and 4m for the far ones.",
+               "Sled: about 3m, and it must be a flexible patch lead, because it moves all day. Stiff wall cable will break.",
+               "Check each is \"straight\": hold both plugs side by side, clips down. The colour order must be identical. Do not use crossover leads.",
+               "Label both ends: SW, SE, NE, NW, SLED, and CNC ONLY."])
     d.h2("5a. Corner units")
-    d.step(1, "Cut the stepper's lead so about 150mm stays on the motor. Keep the off-cut with its plug for the tray.")
-    d.step(2, "Solder one pair to pins 1 and 2 of the socket and the other pair to pins 3 and 4.")
-    d.step(3, "Solder the reel motor's two wires to pins 5 and 6. Its tabs are delicate: solder quickly, then zip-tie the wires to the cup so nothing tugs on them.")
-    d.h2("5b. Leads")
-    d.step(4, "Cut the 6-core cable: two leads of about 2m for the near corners, two of about 4m for the far corners, one of about 3m for the sled.")
-    d.step(5, "Corner leads get a plug on both ends, the same colour on the same pin number at each end. Write the colours down.")
-    d.step(6, "The sled lead gets a plug on one end. Solder the other end straight to the Z motor (pins 1 to 4) and the switch's two outer tags (pins 5 and 6). Zip-tie it to the bridge.")
-    d.step(7, "Label both ends of every lead: SW, SE, NE, NW, SLED.")
+    d.step(1, "Fix a breakout board to the panel with the grid of holes, socket pointing down or outward. Use M3 screws through the board's own holes if they line up, or a sticky foam pad plus two zip ties through the grid.")
+    d.step(2, "Cut the stepper's lead so about 150mm stays on the motor. Keep the off-cut with its plug for the tray.")
+    d.step(3, "Find the pairs. One pair into terminals 1 and 2, the other into 3 and 6.")
+    d.step(4, "The reel motor's two wires into terminals 4 and 5. Zip-tie loose wires to the bracket so nothing tugs on a terminal.")
+    d.h2("5b. Sled")
+    d.step(5, "Fix a breakout board on top of the bridge beside the Z motor, using the grid of small holes there.")
+    d.step(6, "Z motor: one pair into terminals 1 and 2, the other into 3 and 6. Z switch: its two wires into terminals 4 and 5.")
     d.h2("5c. Tray")
-    d.step(8, "Drill five 16mm holes in a long wall of the tray and fit the sockets. Label them X (SW), Y (SE), E0 (NE), E1 (NW), Z (SLED).")
-    d.step(9, "Fix the board in the tray on M3 standoffs. Press in the five drivers, matching the labels on driver and board. A driver fitted backwards is destroyed at switch-on.")
-    d.step(10, "Plug each motor off-cut into the board output of that name and solder its four wires to pins 1 to 4 of the matching socket, pairs on 1 and 2, and on 3 and 4.")
-    d.step(11, "Sled socket pins 5 and 6 go to the Z- endstop connector: one to the pin marked S, one to the pin marked G.")
+    d.step(7, "Fix the main board in the tray on M3 standoffs. Press in the five drivers, matching the labels on driver and board. A driver fitted backwards is destroyed at switch-on.")
+    d.step(8, "Stick five breakout boards along the notched wall, one behind each notch. Label them X (SW), Y (SE), E0 (NE), E1 (NW), Z (SLED).")
+    d.step(9, "Plug each motor off-cut into the main board output of that name. Find its pairs and put them into terminals 1 and 2, and 3 and 6, of the matching breakout board.")
+    d.step(10, "Sled board terminals 4 and 5 go to the Z- endstop connector: one to the pin marked S, one to the pin marked G.")
     d.image("wiring_reels.png", 180, 72)
-    d.step(12, "Wire the reel motors as shown: two chains, each with one 120 ohm resistor, both across the HE0 screw terminals. Stand the resistors clear of plastic. They get warm.")
-    d.step(13, "Power: supply V+ to board +, supply V- to board -, in thick wire. Check it twice. Reversed power kills the board.")
-    d.step(14, "Set each driver for 16 microsteps (jumper table in the board manual) and about 1A of motor current (the driver's leaflet gives the voltage to set on its small screw).")
+    d.step(11, "Wire the reel motors as shown: two chains, each with one 120 ohm resistor, both across the HE0 screw terminals. Join wire to resistor leg with a lever connector. Stand the resistors clear of plastic. They get warm.")
+    d.step(12, "Power: supply V+ to board +, supply V- to board -, in thick wire. Check it twice. Reversed power kills the board.")
+    d.step(13, "Set each driver for 16 microsteps (jumper table in the board manual) and about 1A of motor current (the driver's leaflet gives the voltage to set on its small screw).")
     d.h2("5d. Test before switching on")
-    d.bullets(["Each lead: pin 1 to pin 1 beeps, and so on for all six. Neighbouring pins at one end do not beep.",
-               "Each corner socket: pins 1 and 2 beep, pins 3 and 4 beep, pins 2 and 3 do not.",
-               "Board + to board - does NOT beep.",
+    d.bullets(["Each lead, plugged into a board at both ends: terminal 1 to terminal 1 beeps, and so on for 1 to 6.",
+               "Each corner board: terminals 1 and 2 beep, 3 and 6 beep, 2 and 3 do not.",
+               "Main board + to main board - does NOT beep.",
                "Then switch on. Lights come on, nothing gets warm in the first minute. If anything smells hot, switch off."])
-    d.note("I worked from the board's published pin list, not from one in hand. The labels printed on your board are the authority for "
-           "motor pin order, the endstop connector and the + and - marks.", label="Check your own board")
+    d.note("I worked from the main board's published pin list, not from one in hand. The labels printed on your board are the authority for "
+           "motor pin order, the endstop connector and the + and - marks. Network cable is thinner than usual for a stepper: after the first long job, "
+           "feel the leads. If one is warm, lower that driver's current.", label="Check as you go")
 
     # ---- firmware
     d.h1("6. Firmware")
@@ -651,7 +663,7 @@ def build():
     d.step(5, "Z. Type  homez . The router rises until the switch clicks.")
     d.h2("Packing away")
     d.step(1, "Park the sled on the centre mark. Type  pack  and unhook the belts when asked. Each corner winds its belt onto its reel.")
-    d.step(2, "Type  off , switch off at the wall, unscrew the five plugs, undo the wing nuts and lift the corner units off.")
+    d.step(2, "Type  off , switch off at the wall, unplug the five leads, undo the wing nuts and lift the corner units off.")
     d.h2("Setting up again")
     d.step(1, "Bolt the units back on the same corners, plug in, stand the sled on the centre mark and switch on.")
     d.step(2, "Type  stowed  then  unpack . Each belt pays out to the length it needs. Hook them on, then snug and test as above.")
@@ -683,7 +695,7 @@ def build():
              ["Squares come out as diamonds", "The diagonal D was measured wrongly"],
              ["Everything slightly too big or small", "Belt scale: run the calibration"],
              ["Belt jumps teeth at a corner", "Pinch gap too wide"],
-             ["Motor buzzes but does not turn", "A wire pair is split: recheck the pairs"],
+             ["Motor buzzes but does not turn", "A wire pair is split: recheck the pairs, and that the second pair is on 3 and 6"],
              ["A reel does not wind, or unwinds", "Swap that reel motor's two wires"],
              ["Reels too weak, or loops of slack form", "Fit a lower resistor (82 ohm). If the motors get hot, a higher one"],
              ["Router sinks when powered off", "Park it at the top, or fit a 2mm-lead screw"],

@@ -30,7 +30,7 @@ def corner_bracket():
     fence = union(box(-ft, 0, -ft, tp, -fd, T), box(-ft, tp, -ft, 0, -fd, T))
     rx, ry = G.REEL_LOCAL
     reel_plate = prism(rounded_rect_pts(-10, rx + 17, ry - 17, -30, 5), 0, T)      # carries the reel motor
-    plug_tab = box(-8, 28, ry - 21, ry - 17, -34, T)                              # panel for the GX16 socket
+    plug_tab = box(-12, 32, ry - 21, ry - 17, -44, T)                             # panel for the RJ45 breakout board
     body = union(outrigger, top, fence, reel_plate, plug_tab)
 
     cuts = []
@@ -54,7 +54,9 @@ def corner_bracket():
     cuts.append(cyl(rx, ry, -1, T + 1, 2.6))
     for sx in (-1, 1):
         cuts.append(cyl(rx + sx * 13, ry, -1, T + 1, G.PILOT_M3 / 2))
-    cuts.append(cyl_y(ry - 22, ry - 16, 10, -18, 8.1))                            # 16 mm socket hole
+    for gx in range(5):                      # grid of holes: screw or zip-tie any breakout board to it
+        for gz in range(5):
+            cuts.append(cyl_y(ry - 22, ry - 16, -6 + gx * 8, -40 + gz * 8, 1.6, seg=16))
     return body - union(*cuts)
 
 
@@ -208,6 +210,9 @@ def z_bridge():
         cuts.append(cyl(sx * rx, 0, -1, Tb - 2, G.ROD_D / 2 + 0.1))
         cuts.append(cyl_x(sx * rx, sx * (rx + 13), 0, 6, G.PILOT_M3 / 2) if sx > 0
                     else cyl_x(-(rx + 13), -rx, 0, 6, G.PILOT_M3 / 2))
+    for gx in range(5):                                                          # pilot holes for the sled's breakout board
+        for gy in range(5):
+            cuts.append(cyl(30 + gx * 8, 50 + gy * 8, Tb - 7, Tb + 1, G.PILOT_M3 / 2, seg=16))
     for x in (-rx - 4.75, -rx + 4.75):                                          # microswitch, 9.5 mm pitch
         cuts.append(cyl_y(11, 16, x, -14, 1.05, seg=24))
     return body - union(*cuts)
@@ -279,23 +284,23 @@ def laser_shim():
 # ELECTRONICS
 # =============================================================================
 def electronics_tray():
-    w, d, h, t = 150.0, 110.0, 40.0, 2.5
+    w, d, h, t = 220.0, 150.0, 40.0, 2.5
     tray = rounded_box(-t, w + t, -t, d + t, 0, h, 4) - rounded_box(0, w, 0, d, t, h + 1, 2)
     for (x, y) in ((4, 4), (w - 4, 4), (4, d - 4), (w - 4, d - 4)):
         tray += cyl(x, y, t, h, 4, seg=24) - cyl(x, y, h - 12, h + 1, G.PILOT_M3 / 2, seg=24)
-    for x in (25, 55, 85, 115):                           # cable notches, one long side
-        tray -= box(x - 6, x + 6, -t - 1, 1, h - 14, h + 1)
-    tray -= box(w - 1, w + t + 1, 40, 70, h - 16, h + 1)   # USB / power notch
+    for x in (30, 70, 110, 150, 190):                     # one notch per network lead
+        tray -= box(x - 8.5, x + 8.5, -t - 1, 1, h - 16, h + 1)
+    tray -= box(w - 1, w + t + 1, 55, 95, h - 16, h + 1)   # USB / power notch
     return tray
 
 
 def electronics_lid():
-    w, d, t = 150.0, 110.0, 2.5
+    w, d, t = 220.0, 150.0, 2.5
     lid = rounded_box(-t, w + t, -t, d + t, 0, 2.5, 4)
     for (x, y) in ((4, 4), (w - 4, 4), (4, d - 4), (w - 4, d - 4)):
         lid -= cyl(x, y, -1, 4, G.CLEAR_M3 / 2, seg=24)
-    for i in range(8):                                     # vent slots
-        lid -= box(30 + i * 12, 34 + i * 12, 25, 85, -1, 4)
+    for i in range(12):                                    # vent slots
+        lid -= box(40 + i * 12, 44 + i * 12, 35, 115, -1, 4)
     return lid
 
 

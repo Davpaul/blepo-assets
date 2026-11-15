@@ -1,93 +1,103 @@
 # Wiring guide for beginners
 
-This covers everything electrical: tools, soldering, making the leads, and testing before you switch on. No experience assumed. Take it one lead at a time and test each one before moving on.
+This covers everything electrical. No experience assumed, and almost no soldering: the leads are ordinary network cables, and every wire goes under a screw terminal.
 
 ![Wiring overview](renders/wiring_overview.png)
 
-**The whole job in one paragraph.** One board in a tray drives five motors. Each corner of the table has a stepper motor and a small reel motor, joined to the tray by one 6-core lead with a screw-locking plug on each end. The sled has the Z motor and a switch on a fifth lead. The power supply from the old printer feeds the board. The router has its own mains plug and is not wired to the board at all.
+**The whole job in one paragraph.** One board in a tray drives five motors. Each corner of the table has a stepper motor and a small reel motor, joined to the tray by one network lead. The sled has the Z motor and a switch on a fifth lead. At each end of every lead is a small "RJ45 breakout board": a network socket with eight numbered screw terminals. The power supply from the old printer feeds the main board. The router has its own mains plug and is not wired to the board at all.
 
 ## Stay safe
 
 - **Everything you wire is 24V or less.** It cannot shock you. Never open the power supply or work on anything mains.
 - **Unplug from the wall before touching any wiring.** Not just switched off: unplugged.
-- **Never plug or unplug a motor lead with the power on.** It can destroy the driver for that motor. This is the most common way people break these boards.
-- A soldering iron is about 350°C. Keep it in its stand, and wear glasses, because solder can spit.
-- Work near an open window. Solder fumes are unpleasant.
+- **Never plug or unplug a lead with the power on.** It can destroy the driver for that motor. This is the most common way people break these boards.
+- **Never plug these leads into a computer, router or anything else.** They carry 24V motor current and would damage it. Label every lead and every socket "CNC ONLY".
 
 ## Tools
 
 | Tool | Notes | Est. |
 |---|---|---|
-| Soldering iron, temperature controlled | 40 to 60W with a stand and a damp sponge or brass wool | £20 |
-| Solder, 0.8mm, with flux core | "60/40" leaded is easiest for a beginner. Wash hands after. | £5 |
-| Wire strippers | The self-adjusting kind saves a lot of swearing | £8 |
+| Small flat screwdriver, 2 to 2.5mm | For the screw terminals | £3 |
+| Wire strippers | The self-adjusting kind is easiest | £8 |
 | Multimeter | Any cheap one with a continuity beep | £10 |
-| Heat-shrink tubing assortment | 2mm and 3mm sizes mostly | £4 |
-| Helping hands or a small vice | To hold the connector while you solder | £8 |
-| Side cutters, small screwdrivers | | £8 |
-| Lighter or hot-air gun | To shrink the tubing | |
+| Side cutters | | £5 |
+| Lever connectors (Wago 221 style), 2-way | Five or six, for joining wires without solder | £4 |
 
-## How to solder a wire into a connector
+A soldering iron is only needed if your reel motors or Z switch arrive without wires attached. Buy them pre-wired and you can skip it.
 
-The GX16 connectors have small hollow "cups" on the back, one per pin. Practise on a spare pin and a scrap of wire first. Three or four goes and you'll have it.
+## How to put a wire in a screw terminal
 
-1. **Strip** 4mm of insulation off the wire. Twist the strands together.
-2. **Tin the wire:** touch the iron to the bare wire for two seconds, then feed in a little solder until the strands turn silver. Shake off any blob.
-3. **Slide on heat-shrink now**, 15mm long, and push it well away from the heat. Everyone forgets this once.
-4. **Fill the cup:** hold the iron against the cup for two seconds and feed in solder until it is about half full.
-5. **Join:** hold the iron on the cup until the solder goes shiny and liquid, push the tinned wire in, take the iron away, and hold the wire dead still for three seconds.
-6. **Check:** the joint should be shiny and smooth, and the wire should not pull out with a firm tug. Dull and lumpy means it moved while cooling: reheat it.
-7. **Insulate:** slide the heat-shrink down over the joint and warm it until it grips.
+1. Strip 6mm of insulation. Twist the strands tightly so none stray.
+2. Undo the terminal screw until the opening is clear.
+3. Push the bare end fully in, so no bare copper shows outside.
+4. Tighten firmly, then tug the wire. It must not pull out.
 
 **Tips**
-- Put the plug's outer shell and nut on the cable **before** soldering. They will not go on afterwards.
-- Solder the middle pins first, then the outer ones, so you are not reaching over finished joints.
-- Clean the iron tip on the sponge every few joints and keep it silver with a dab of solder.
-- If two pins get bridged with solder, heat the bridge and flick it away, or reheat and pull the wire back out.
+- Thin wires hold better folded double before they go in.
+- One stray strand touching the next terminal causes faults that are miserable to find. Look closely at each one.
+- Do one board completely, test it, then do the next.
 
-## What goes on which pin
+## What goes on which terminal
 
-![Pinout](renders/wiring_pinout.png)
+![Terminals](renders/wiring_pinout.png)
 
-Every plug and socket uses the same pins for the same job. Write this on a card and keep it on the bench.
+Write this on a card and keep it on the bench:
+
+| Terminals | Corner boards | Sled board |
+|---|---|---|
+| 1 and 2 | Stepper, first pair | Z motor, first pair |
+| 3 and 6 | Stepper, second pair | Z motor, second pair |
+| 4 and 5 | Reel motor | Z switch |
+| 7 and 8 | Not used | Not used |
+
+Note the second pair is on 3 and **6**, not 3 and 4. That matches how the wires are twisted together inside a network lead.
 
 ## Finding the stepper's wire pairs
 
-A stepper has four wires that make two pairs (two coils). You need to know which wires are partners. Colours are not reliable.
+A stepper has four wires that make two pairs. You need to know which wires are partners. Colours are not reliable.
 
 1. Set the multimeter to the continuity beep.
 2. Touch one probe to any motor wire. Touch the other probe to each of the other three in turn. One of them beeps. Those two are a pair. The remaining two are the other pair.
-3. Label them A, A, B, B with tape.
+3. Label them with tape.
 
 No multimeter? Touch two bare wire ends together and spin the motor shaft with your fingers. If it suddenly feels stiff and notchy, those two are a pair.
 
-It does not matter which pair you call A. If a motor turns the wrong way later, that is fixed in software.
+It does not matter which pair goes on 1 and 2. If a motor turns the wrong way later, that is fixed in software.
+
+## The leads
+
+- **Corners:** any network lead that reaches. About 2m for the two near corners and 4m for the far ones, with half a metre to spare.
+- **Sled:** about 3m, and it must be a flexible patch lead (the bendy kind with moulded plugs), because it moves all day. Stiff cable meant for wall runs will break.
+- **Check each one is "straight".** Hold both plugs side by side, clips down. The colour order must be identical. A few old leads are "crossover" and swap two pairs: do not use those.
+- Label both ends: SW, SE, NE, NW, SLED.
 
 ## Building it, in order
 
 ### 1. Corner units (four the same)
 
-Each corner has a socket in the hanging tab on its bracket.
+Each bracket has a panel hanging down with a grid of holes.
 
-1. Cut the stepper's lead so about 150mm is left on the motor. Keep the off-cut with its plug: you will use it in step 3.
-2. Find the pairs. Solder pair A to pins 1 and 2 of the socket, pair B to pins 3 and 4.
-3. Solder the reel motor's two wires to pins 5 and 6. Use thin flexible wire. The N20's own tabs are delicate, so solder quickly and tie the wires to the motor cup with a zip tie so nothing can tug on the tabs.
-4. Zip-tie the loose wires to the bracket.
+1. Fix a breakout board to the panel, socket pointing down or outward so the lead plugs in easily. Use two M3 screws through the board's own holes if they line up with the grid, or a sticky foam pad plus two zip ties through the grid.
+2. Cut the stepper's lead so about 150mm stays on the motor. Keep the off-cut with its plug: you will use it in the tray.
+3. Find the pairs. One pair into terminals 1 and 2, the other into 3 and 6.
+4. Reel motor's two wires into terminals 4 and 5.
+5. Zip-tie the loose wires to the bracket so nothing can tug on a terminal.
 
-### 2. Five leads
+### 2. The sled
 
-1. Cut the 6-core cable: two leads of about 2m (the near corners), two of about 4m (the far corners), and one of about 3m for the sled. Measure your own table and add half a metre to each.
-2. Four corner leads get a plug on **both** ends. Thread the shells on first. Use the same core colour on the same pin number at both ends, and write down which colour is which pin.
-3. The sled lead gets a plug on **one** end only. The other end is soldered straight to the Z motor (pins 1 to 4, pairs as before) and the Z switch (pins 5 and 6, to the switch's two outer tags). Cover every joint in heat-shrink and zip-tie the lead to the bridge so the joints carry no strain.
-4. Label both ends of every lead: SW, SE, NE, NW, SLED. Coloured tape works well.
+1. Fix a breakout board on top of the bridge, beside the Z motor, using the grid of small holes there (M3 x 12 screws with washers clamping the board's edges, or a foam pad).
+2. Z motor: one pair into terminals 1 and 2, the other into 3 and 6.
+3. Z switch: its two wires into terminals 4 and 5. Use the two outer tags of the switch.
+4. Hang the lead from above so its weight is not on the socket.
 
 ### 3. The tray
 
-1. Drill five 16mm holes in one long wall of the tray and fit the five sockets. Label them X (SW), Y (SE), E0 (NE), E1 (NW), Z (SLED).
-2. Use the off-cut leads from the motors, which already have the right plug for a driver output. Plug each into the board's motor output of that name and solder its four wires to pins 1 to 4 of the matching socket, pairs on 1 and 2, and on 3 and 4. Find the pairs with the multimeter by testing from the plug end.
+1. Fix the main board on M3 standoffs: mark its holes on the tray floor and drill 2.8mm pilot holes.
+2. Stick five breakout boards along the notched wall, one behind each notch, sockets facing the notches. Label them X (SW), Y (SE), E0 (NE), E1 (NW), Z (SLED).
+3. Take the off-cut leads you saved from the motors. Each has a plug that fits a motor output on the main board. Plug one into the output of each name, find its pairs with the multimeter from the bare ends, and put them into terminals 1 and 2, and 3 and 6, of the matching breakout board.
 
-   If your printer's leads do not fit the TinyBee's motor pins, use the connector kit to crimp new plugs, or solder to short jumper wires.
-3. Sled socket pins 5 and 6 go to the board's **Z-** endstop connector: one wire to the pin marked S (signal), one to the pin marked G or GND. Leave the third pin empty.
+   If the plugs do not fit your board's motor pins, use the connector kit to crimp new ones.
+4. Sled board terminals 4 and 5 go to the main board's **Z-** endstop connector: one wire to the pin marked S (signal), one to the pin marked G or GND. Leave the third pin empty.
 
 ### 4. Reel motors
 
@@ -95,49 +105,52 @@ Each corner has a socket in the hanging tab on its bracket.
 
 All of this is inside the tray.
 
-1. The HE0 output is a pair of screw terminals on the board, marked + and -.
-2. From HE0 +, a wire to one leg of a resistor. From its other leg, to pin 5 of the SW socket.
-3. Pin 6 of the SW socket to pin 5 of the SE socket.
-4. Pin 6 of the SE socket back to HE0 -.
+1. The HE0 output is a pair of screw terminals on the main board, marked + and -.
+2. From HE0 +, a wire to one leg of a resistor (join them with a lever connector). From the resistor's other leg, a wire to terminal 4 of the SW board.
+3. Terminal 5 of the SW board to terminal 4 of the SE board.
+4. Terminal 5 of the SE board back to HE0 -.
 5. Do the same again with the second resistor for NE and NW, into the same HE0 terminals.
 
-The resistors get warm. Stand them clear of the plastic and of other wires, not taped down.
+The resistors get warm. Stand them clear of plastic and other wires, not taped down.
 
 ### 5. Power
 
-1. The power supply has screw terminals marked V+ and V- (or +24V and COM). Run two thick wires (at least 1mm², the printer's own are ideal) to the board's power input: V+ to +, V- to -.
+1. The power supply has screw terminals marked V+ and V- (or +24V and COM). Run two thick wires (at least 1mm², the printer's own are ideal) to the main board's power input: V+ to +, V- to -.
 2. **Check this twice.** Reversed power kills the board instantly.
 3. Leave the supply's mains side exactly as it came from the printer, with its original cable and cover.
 
 ### 6. Drivers
 
 1. With the power off, press the five driver modules into their sockets. Each has pins labelled along its edges, and so does the board: match EN to EN and GND to GND. A driver fitted backwards is destroyed when you switch on.
-2. Set the microstep jumpers under each driver for 16 microsteps, following the table in the TinyBee manual for the TMC2209.
-3. Motor current is set by the tiny screw on each driver. Measure DC volts between the top of that screw and any GND pin, with the board powered and motors unplugged. Aim for about 1.2V, which is roughly 0.85A on common TMC2209 modules. Check your driver's leaflet, because the formula differs between makers. Turn the screw a little at a time with a small screwdriver.
+2. Set the microstep jumpers under each driver for 16 microsteps, following the table in the TinyBee manual for your driver type.
+3. Motor current is set by the tiny screw on each driver. Measure DC volts between the top of that screw and any GND pin, with the board powered and the leads unplugged. Aim for about 1.2V, which is roughly 0.85A on common TMC2209 modules. Check your driver's leaflet, because the formula differs between makers.
 
 ## Test before first power-on
 
 Ten minutes here saves a board. Multimeter on the continuity beep, everything unplugged from the wall.
 
-1. **Each lead:** probe pin 1 at one end and pin 1 at the other. It should beep. Repeat for all six. Then check pin 1 against pin 2, 2 against 3 and so on at one end: none should beep.
-2. **Each corner unit:** at the socket, pins 1 and 2 beep together, pins 3 and 4 beep together, and 2 to 3 does not.
+1. **Each lead, plugged into a breakout board at both ends:** terminal 1 on one board to terminal 1 on the other should beep. Repeat for 2, 3, 4, 5 and 6. Then terminal 1 against 2, 2 against 3 and so on, on one board with nothing wired to it: none should beep.
+2. **Each corner unit:** terminals 1 and 2 beep together, 3 and 6 beep together, 2 and 3 do not.
 3. **Power input:** board + to supply V+ beeps. Board + to board - does **not** beep.
-4. **Look over every joint** for stray strands of wire touching the next pin.
+4. **Look over every terminal** for stray strands.
 
-Then: plug in the leads, plug the supply into the wall, and switch on. The board's lights should come on and nothing should get warm in the first minute. If anything smells hot, switch off at once.
+Then plug in the leads, plug the supply into the wall, and switch on. The board's lights should come on and nothing should get warm in the first minute. If anything smells hot, switch off at once.
 
 ## If something is wrong
 
 | Symptom | Likely cause |
 |---|---|
-| Motor buzzes or judders but does not turn | A pair is split across coils: recheck which wires are partners |
-| Motor does nothing | Lead not continuous, or the driver is not seated |
+| Motor buzzes or judders but does not turn | A pair is split: recheck which wires are partners, and that the second pair is on 3 and 6 |
+| Motor does nothing | A loose terminal, a faulty lead, or the driver is not seated |
 | Motor turns the wrong way | Normal. Fix in the config file (see firmware/INSTALL.md) |
 | Motor gets too hot to touch | Driver current set too high |
-| A reel turns the wrong way | Swap the wires on pins 5 and 6 at that corner |
+| A reel turns the wrong way | Swap the wires on terminals 4 and 5 at that corner |
 | Neither reel in a chain turns | A break somewhere in that chain: both must be plugged in for either to run |
-| Z switch has no effect | Check with the multimeter: pins 5 and 6 of the sled plug should beep when the lever is pressed (or stop beeping, depending on which tags you used) |
+| Z switch has no effect | With the sled lead plugged in, terminals 4 and 5 on the tray's sled board should beep when the lever is pressed (or stop beeping, depending on which tags you used) |
+| A motor only misbehaves with one particular lead | That lead is crossover or damaged: swap it |
 
 ## Things I could not confirm
 
-I worked from the board's published pin list, not from one in hand. Before soldering, look at your own TinyBee and its manual for: which way round the motor output pins are, the labels on the endstop connector, and the polarity marks on HE0 and the power input. The labels printed on the board are the authority.
+- I worked from the main board's published pin list, not from one in hand. Before wiring, look at your own TinyBee and its manual for: which way round the motor output pins are, the labels on the endstop connector, and the polarity marks on HE0 and the power input. The labels printed on the board are the authority.
+- Breakout boards differ in size and hole positions between sellers, which is why the mounting panels have a grid of holes instead of a fixed pattern.
+- Network cable is thinner than I'd normally choose for a stepper. By my calculation a 4m lead loses under a volt and barely warms at 1A, but check the leads by hand after the first long job. If one is warm, lower that driver's current.

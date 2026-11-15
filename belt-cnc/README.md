@@ -13,7 +13,7 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 | [belt-cnc-build-guide.pdf](belt-cnc-build-guide.pdf) | The printable step-by-step guide, with life-size drawings of every fastener. Print at 100%. |
 | [PARTS.md](PARTS.md) | What to salvage from the Artillery X1, what to buy, what to print |
 | [BUILD.md](BUILD.md) | Step-by-step construction and setup |
-| [WIRING.md](WIRING.md) | Beginner's guide to the soldering and wiring, with diagrams |
+| [WIRING.md](WIRING.md) | Beginner's guide to the wiring, with diagrams. Network leads and screw terminals, almost no soldering |
 | [firmware/INSTALL.md](firmware/INSTALL.md) | Putting the software on the controller |
 | `stl/` | Printable parts, ready to slice |
 | `renders/` | Pictures of every part and the assemblies |

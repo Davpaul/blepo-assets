@@ -2,7 +2,7 @@
 
 Read this once all the way through before starting. Allow a week of evenings for printing, a day for mechanical assembly, a day for wiring and a day for setup.
 
-**Tools you need:** hex keys (1.5 to 4mm), small screwdrivers, an 8mm spanner, hacksaw, round file, drill with 3mm, 8mm and 16mm bits, tape measure, and the soldering kit listed in [WIRING.md](WIRING.md).
+**Tools you need:** hex keys (1.5 to 4mm), small screwdrivers, an 8mm spanner, hacksaw, round file, drill with 3mm and 8mm bits, tape measure, and the few wiring tools listed in [WIRING.md](WIRING.md).
 
 **General tips**
 - Lay out the parts for each step before starting it, and do one corner unit completely before the other three.
@@ -56,7 +56,7 @@ All four are identical.
 6. Check the gap: a scrap of belt, teeth against the pulley, should slide between pulley and bearing with light drag. If it jams, ease the bolt hole with a round file. If the belt can lift off the teeth, the gap is too big and that bracket needs reprinting.
 7. Reel motor: push an **N20 motor** up into the pocket under the bracket, shaft through the small hole. Hold it there with `n20_cup` and two **M3 x 12** screws, wires out through the slot.
 8. Reel: screw `reel_flange` to the hub of `reel_body` with three **M3 x 12** screws, then push the reel onto the motor's D-shaped shaft. It should turn level, clear of the bracket.
-9. Fit a **GX16-6 socket** in the hole in the hanging tab. Wiring it is covered in WIRING.md.
+9. The panel that hangs down, with the grid of holes, takes a network breakout board. Fitting and wiring it is covered in WIRING.md.
 
 ## 4. Build the sled
 
@@ -75,7 +75,7 @@ All four are identical.
 
 ## 5. Electronics
 
-Follow **[WIRING.md](WIRING.md)**. It is written for a first-timer: tools, how to solder a connector, which wire goes on which pin, and what to test before switching on.
+Follow **[WIRING.md](WIRING.md)**. It is written for a first-timer. The leads are ordinary network cables and every wire goes under a screw terminal, so there is almost no soldering.
 
 Summary of where each lead goes:
 
@@ -168,7 +168,7 @@ Do steps 2 to 5 each time you set the machine up. They take a few minutes.
 **Packing away**
 1. Park the sled on the centre mark and raise Z.
 2. Type `pack`. Unhook the belts when asked. Each corner winds its belt onto its reel, leaving about 150mm out.
-3. Type `off`, switch off at the wall, unscrew the five plugs, undo the wing nuts and lift the corner units off.
+3. Type `off`, switch off at the wall, unplug the five leads, undo the wing nuts and lift the corner units off.
 
 **Setting up again**
 1. Bolt the corner units back on the same corners (label them), plug in, stand the sled on the centre mark and switch on.

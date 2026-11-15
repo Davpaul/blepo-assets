@@ -32,11 +32,12 @@ Print everything first (see BUILD.md step 1), then strip it. I have not seen you
 | MKS TinyBee V1.0 controller board | 1 | £20 |
 | TMC2209 stepper driver modules | 5 | £15 |
 | MicroSD card, any size | 1 | £4 |
-| 6-core cable, 0.5mm² (alarm cable is fine) | 15m | £12 |
-| GX16-6 locking plug and socket pairs ("aviation connectors") | 5 pairs | £8 |
-| N20 geared motor, 6V, about 100 rpm, 3mm D shaft | 4 | £10 |
+| Network leads (Cat5e or Cat6, straight, not crossover): about 2m x 2 and 4m x 2 for the corners, 3m flexible patch lead for the sled | 5 | salvage, or £10 |
+| RJ45 breakout board with screw terminals | 10 | £15 |
+| Lever connectors, 2-way (Wago 221 style) | 6 | £4 |
+| N20 geared motor, 6V, about 100 rpm, 3mm D shaft, with wires attached | 4 | £10 |
 | Resistor, 120 ohm, 5W | 2 | £2 |
-| Microswitch, lever type (KW11 style, 9.5mm hole pitch) | 2 | £2 |
+| Microswitch, lever type (KW11 style, 9.5mm hole pitch), with wires attached | 2 | £2 |
 | JST-XH or Dupont connector kit | 1 | £5 |
 | Switched extension lead (your emergency stop) | 1 | £8 |
 
@@ -90,7 +91,7 @@ An M3 and M5 assortment box covers all of this for about £12.
 
 ### Hand tools
 
-See the tool lists at the top of BUILD.md and WIRING.md. The soldering kit and multimeter come to about £60 if you have none of it.
+See the tool lists at the top of BUILD.md and WIRING.md. The wiring needs a small screwdriver, wire strippers and a multimeter, about £25 if you have none. No soldering iron, provided the reel motors and switch come with wires attached.
 
 ### Optional tools
 
@@ -127,6 +128,6 @@ All STL files are in `stl/`, already turned the right way up for printing. None 
 | `laser_caddy.stl` | 1 | Only if you fit a laser. |
 | `laser_shim.stl` | as needed | Packing for laser modules under 40mm square. |
 | `riser_shim.stl` | as needed | 6mm lifts for a corner unit, see BUILD.md step 7. |
-| `electronics_tray.stl`, `electronics_lid.stl` | 1 each | |
+| `electronics_tray.stl`, `electronics_lid.stl` | 1 each | 225 x 155mm. |
 
 Settings for everything unless noted: PETG, 0.2mm layers, 4 walls, 40% infill. About 1.5kg of filament for one full set, so buy 2kg, or 3kg to allow for reprints. Print one spare each of the small spacers and sleeves while the printer still exists.
