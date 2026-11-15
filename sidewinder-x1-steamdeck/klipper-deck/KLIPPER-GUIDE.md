@@ -75,13 +75,26 @@ Open that address on your Mac, phone, or the Deck itself. Bookmark it.
 Keep a hand near the printer's power switch for these. In Mainsail, click **Console**:
 
 1. Type `QUERY_ENDSTOPS`. All three should say **open**.
-2. Hold something in the Z stop sensor (or press the X / Y switch by hand) and run `QUERY_ENDSTOPS` again. That one should now say **TRIGGERED**.
-   - If they're the wrong way round (TRIGGERED when nothing is pressed): see "Fixing a setting" below.
+2. Trigger each one by hand and run `QUERY_ENDSTOPS` again. That one should now say **TRIGGERED**.
+   - **Z stop:** the small black square block low on the **right-hand upright** (photo: `../z-stop-circled.jpg`). It has no slot: it senses metal. Hold a screwdriver tip against its flat top.
+   - **X / Y:** press the switch by hand.
+   - If any read the wrong way round (TRIGGERED when nothing is near): see "Fixing a setting" below.
 3. Click the **X** home button only. The head should move left and stop on the switch.
    - If it moves the wrong way, power off and flip that axis's direction (see below).
-4. Home **Y**, then **Z**. Z homes in the middle of the bed and both Z motors should turn together.
+4. Home **Y**, then **Z**. Z homes in the middle of the bed and both Z motors should turn together. It touches down twice (fast, then slow): that's normal.
+   - Put a sheet of paper under the nozzle when homing Z. If the paper gets pinched, the nozzle is reaching the bed before the sensor triggers. Turn all four bed knobs ~2 turns to lower the bed, then try again until there's a small gap.
 5. Heat test: set the hotend to 200 and the bed to 60 in the temperature panel. Watch both climb steadily. The hotend fan should come on above 50°C. Turn them off after.
 6. Move the axes with the jog buttons. That's it moving under Klipper.
+
+## Step 6. Set the nozzle height and level the bed (paper test)
+
+1. `G28`, then `Z_ENDSTOP_CALIBRATE`
+2. Paper under the nozzle. Lower with `TESTZ Z=-0.1` (use `TESTZ Z=-1` while it's still well above). Raise with `TESTZ Z=+0.1`.
+3. Stop when the paper drags lightly but still slides. If it pinches, go up 0.1.
+4. `ACCEPT`, then `SAVE_CONFIG` (Klipper saves it and restarts).
+5. `G28`, then `BED_SCREWS_ADJUST`. At each corner turn the knob until the paper drags lightly, then type `ADJUSTED` (or `ACCEPT` if it was already right). Run it twice.
+
+"Move out of range" while lowering means Klipper won't go below zero. `position_min: -5` under `[stepper_z]` in `printer.cfg` allows it (already in new installs).
 
 ### Fixing a setting
 
@@ -90,7 +103,7 @@ In Mainsail: **Machine** > `printer.cfg` > edit > **Save & Restart**. (The file 
 - **Endstop reversed:** in that axis's section, change `endstop_pin: ^!PE5` to `endstop_pin: ^PE5` (remove the `!`), or the other way round.
 - **Axis moves the wrong way:** add or remove the `!` on its `dir_pin`.
 
-## Step 6. Send prints from your Mac
+## Step 7. Send prints from your Mac
 
 **OrcaSlicer (recommended):**
 1. Add printer: **Artillery > Sidewinder X1**. If it isn't listed, use Sidewinder X2 and set the bed to 300 × 300.
