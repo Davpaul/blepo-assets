@@ -9,7 +9,7 @@ Print everything first (see BUILD.md step 1), then strip it. I have not seen you
 | Part | Qty | Used for | Check |
 |---|---|---|---|
 | NEMA17 stepper motors | 5 | 4 belt drives + Z axis | X, Y, extruder and the two Z motors. Use the four most alike for the belts. |
-| 24V power supply | 1 | Whole machine | Read the label: you need 24V and 5A or more. |
+| 24V power supply | 1 | Whole machine | Only if it stays boxed in the printer's base. Otherwise buy the sealed adapter below. |
 | T8 lead screw + brass nut | 1 of 2 | Z axis | Cut one screw to 115mm with a hacksaw. See the note below. |
 | Flexible shaft coupler, 5mm to 8mm | 1 of 2 | Z motor to lead screw | On the Z motors. |
 | GT2 20-tooth pulleys | 2 | Belt drives | On the X and Y motors. Must be 5mm bore for 6mm belt. |
@@ -32,6 +32,7 @@ Print everything first (see BUILD.md step 1), then strip it. I have not seen you
 | MKS TinyBee V1.0 controller board | 1 | £20 |
 | TMC2209 stepper driver modules | 5 | £15 |
 | MicroSD card, any size | 1 | £4 |
+| Sealed 24V power adapter ("brick"), 5A or more | 1 | £15 |
 | Network leads (Cat5e or Cat6, straight, not crossover): about 2m x 2 and 4m x 2 for the corners, 3m flexible patch lead for the sled | 5 | salvage, or £10 |
 | RJ45 breakout board with screw terminals | 10 | £15 |
 | Lever connectors, 2-way (Wago 221 style) | 6 | £4 |

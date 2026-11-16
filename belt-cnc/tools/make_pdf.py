@@ -591,7 +591,12 @@ def build():
     d.step(10, "Sled board terminals 4 and 5 go to the Z- endstop connector: one to the pin marked S, one to the pin marked G.")
     d.image("wiring_reels.png", 180, 72)
     d.step(11, "Wire the reel motors as shown: two chains, each with one 120 ohm resistor, both across the HE0 screw terminals. Join wire to resistor leg with a lever connector. Stand the resistors clear of plastic. They get warm.")
-    d.step(12, "Power: supply V+ to board +, supply V- to board -, in thick wire. Check it twice. Reversed power kills the board.")
+    d.step(12, "Power: use a sealed 24V adapter (a brick like a laptop charger, 5A or more). Its 24V output goes to the main board: + to +, - to -, in thick wire. "
+               "Find + with the multimeter first. Check it twice. Reversed power kills the board.")
+    d.note("The printer's own power supply has bare mains terminals once it is out of the printer. Only reuse it if it stays boxed inside the printer's base "
+           "with the original mains socket and switch. Do not run it loose on the floor.", label="Mains safety")
+    d.p("Where things sit: the tray goes at the middle of the south edge, where you stand, with the power adapter beside it. One switched extension lead "
+        "within arm's reach feeds the adapter, the router and the vacuum. Its switch is your emergency stop.")
     d.step(13, "Set each driver for 16 microsteps (jumper table in the board manual) and about 1A of motor current (the driver's leaflet gives the voltage to set on its small screw).")
     d.h2("5d. Test before switching on")
     d.bullets(["Each lead, plugged into a board at both ends: terminal 1 to terminal 1 beeps, and so on for 1 to 6.",

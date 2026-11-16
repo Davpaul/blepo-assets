@@ -115,9 +115,17 @@ The resistors get warm. Stand them clear of plastic and other wires, not taped d
 
 ### 5. Power
 
-1. The power supply has screw terminals marked V+ and V- (or +24V and COM). Run two thick wires (at least 1mm², the printer's own are ideal) to the main board's power input: V+ to +, V- to -.
+**Where things sit.** The tray (the "brain") goes on the floor or a shelf at the middle of the south edge, where you stand. The power supply sits beside it. One switched extension lead, within arm's reach, feeds the power supply, the router and the vacuum. Its switch is your emergency stop.
+
+**Which power supply.** There are two options:
+
+- **Easiest and safest: a sealed 24V adapter** (a "brick", like a laptop charger), rated 5A or more, about £15. Mains goes in through a moulded lead and only 24V comes out. Nothing live is exposed.
+- **The printer's own supply.** It works, but once it is out of the printer its mains screw terminals are bare metal. Only use it if you leave it inside the printer's base with the original mains socket, switch and wiring untouched, or have someone qualified box it up. Do not run it loose on the floor.
+
+Then:
+
+1. Run two thick wires (at least 1mm²) from the supply's 24V output to the main board's power input: + to +, - to -. A sealed adapter usually ends in a round plug: cut it off, strip the two wires, and use the multimeter on DC volts to find which is + before connecting.
 2. **Check this twice.** Reversed power kills the board instantly.
-3. Leave the supply's mains side exactly as it came from the printer, with its original cable and cover.
 
 ### 6. Drivers
 
