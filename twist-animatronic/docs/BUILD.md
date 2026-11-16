@@ -36,8 +36,8 @@ Order matters:
 
 ## Stage 2: Body lean
 
-1. Screw a `bracket_L` to the middle of the turntable deck with four 4 x 16 wood screws, so the centre of its slotted horn pattern sits over the twist axis. Fit a DS3235 in it, shaft pointing forward.
-2. Build the joint with a `roll_yoke` over it. Fit the second DS3235 in the cage on top of the roll yoke.
+1. Screw a `bracket_L` to the middle of the turntable deck with four 4 x 16 wood screws, so the centre of its slotted horn pattern sits over the twist axis. Fit a DS3218 in it, shaft pointing forward.
+2. Build the joint with a `roll_yoke` over it. Fit the second DS3218 in the cage on top of the roll yoke.
 3. Press four M4 plain nuts into the pockets under the top plate of a `pitch_yoke`, then build that joint over the second servo.
 4. Bolt the `carriage` on top with four M4 x 12.
 
@@ -51,9 +51,9 @@ Cut the pipe: boom 320 mm, mast 300 mm, entry pipe 240 mm, outrigger 470 mm. The
 2. A **knuckle pair** is two knuckles face to face with an M6 x 50 bolt and wing nut through the middle. The teeth lock every 15°. Loosen the wing nut two turns to change the angle.
 3. Knuckle pair at the back of the boom, mast standing up from it.
 4. Knuckle pair at the top of the mast, entry pipe heading forward and up at about 30°.
-5. One knuckle on the front end of the entry pipe. Bolt `neck_base` to it with the M6 x 35 (nut in the hex pocket on the outside of the leg). The neck base hangs to one side of the knuckle so the neck ends up on the centre line.
+5. One knuckle on the front end of the entry pipe. Bolt `neck_leg` to it with the M6 x 35 (nut in the hex pocket on the outside of the leg). The leg hangs to one side of the knuckle so the neck ends up on the centre line.
 6. Knuckle pair just behind the carriage, carrying the outrigger across the boom.
-7. Screw the two `pipe_saddle` clamps to the electronics board with 4 x 12 screws and clamp them to the mast.
+7. Screw the two `pipe_saddle` clamps to the front of the electronics board with 3.5 x 12 screws and clamp them to the mast.
 8. Knuckle on the mast for `speaker_mount` (M6 x 30 into its captive nut).
 
 Leave everything finger tight for now.
@@ -62,15 +62,51 @@ Leave everything finger tight for now.
 
 ![head](img/head.png)
 
-1. Head twist servo into `neck_base`, shaft up. Fit its horn.
-2. Bolt a `bracket_L` flat onto that horn with four M3 x 6 button heads from inside the cage (do this before the next servo goes in, they hide under it). Fit the head-roll servo, shaft pointing forward.
-3. `roll_yoke` over it, head-nod servo in the top cage with its long end toward the back.
-4. `pitch_yoke` (nuts in first) over that.
-5. Jaw servo into the cage under `head_frame`, shaft end toward the front. Bolt `head_frame` onto the pitch yoke with four M4 x 12.
-6. `jaw_yoke` over the jaw servo cage, tongue pointing forward.
-7. Bolt one paddle under the front of `head_frame` and one on top of the jaw yoke's tongue, two M4 x 16 each through the long slot. Slide them to suit the puppet.
+The head no longer carries a stack of servos. A small two-way joint lets it nod and tilt, four lines pull it, and one servo above the joint twists it. All the pulling is done by servos on the electronics board.
 
-The head module is 66 mm wide and 150 mm tall from the bottom of the neck servo to the top plate. It goes into the puppet the way a hand does, paddles first.
+1. Press two M4 nuts into the pockets under the tab of `neck_leg`. Sit `neck_fork` on the tab and fix it with two M4 x 16 from above.
+2. Drop `neck_cross` into the fork, low hole side to side. Push the M3 x 40 through fork and cross, add a nyloc nut, snug it and back off a quarter turn. This is the nod pin.
+3. Head-twist servo into the cage of `head_frame2`, pushed in from below with its shaft pointing down. Four M4 x 16. Fit a disc horn (servo centred).
+4. Bolt `neck_top` to that horn from underneath with four M3 x 6, posts pointing down.
+5. Lower `neck_top` over the cross so its two tabs straddle it front and back. Push the M3 x 35 through front to back. This is the tilt pin.
+6. Hold `jaw_lever` under the front of `head_frame2`, cheeks outside the hinge block, lever on the same side as the small sheath block. M3 x 45 through as the hinge, nyloc nut, leave it free.
+7. Bolt one paddle under the front of `head_frame2` and one on top of the jaw's tongue, two M4 x 16 each through the long slot.
+
+The head should now flop freely in every direction and the jaw should swing. If anything binds, loosen that pin a touch.
+
+Size inside the puppet: 65 mm across at the neck joint, 41 mm across at the head (the paddles are 56), about 115 mm from the bottom of the fork to the top of the twist servo.
+
+## Stage 4b: Pull units and lines
+
+![pull unit](img/pull_unit.png)
+
+Do this after stage 6 so you can power the servos.
+
+**Pull units.** Screw the three `pull_unit` parts across the top of the back of the electronics board, sheath sockets pointing up, with four 3.5 x 12 screws each. Drop a servo in each (four M4 x 16). With the servos held at centre by `center.py`, fit a horn and bolt a `drum` to it with four M3 x 12, the slot in the drum's rim pointing away from the sockets.
+
+**Sheaths.** Cut five lengths of PTFE tube with a sharp blade, square ends. Run each from a pull-unit socket, up the mast, along the entry pipe, to its socket:
+
+| Line | From | To |
+|---|---|---|
+| Nod, front | Nod unit, either socket | Front socket under `neck_fork` |
+| Nod, back | Nod unit, other socket | Back socket |
+| Tilt, left | Tilt unit | Left socket |
+| Tilt, right | Tilt unit | Right socket |
+| Jaw | Jaw unit, either socket | Block on the side of `head_frame2` |
+
+Leave gentle curves and no kinks. The jaw sheath needs a loose loop where it passes the neck, because the head turns 80° each way above it. Tie the sheaths to the pipes with cable ties, snug but not crushing.
+
+**Neck lines.** For each of the four:
+
+1. Tie a fat knot (a figure-eight, doubled) in the end of the fishing line and add a drop of superglue.
+2. Thread the other end down through the hole in the top of `neck_top`, so the knot seats in its recess, down the post, straight down into the hole in `neck_fork` below it, and on through the sheath to the pull unit.
+3. At the drum, lay the line in the groove, round the back, up through the slot in the rim.
+
+With the head held level and the servo at centre, pull both lines of a pair snug and trap them together under an M3 x 8 and washer in the drum's small hole. Snug means no slack, not guitar-string tight.
+
+**Jaw line.** Knot the line through the small hole in the tip of the jaw lever, run it back through the sheath block and sheath to the jaw unit, and clamp it on the drum with the mouth held shut and the servo at centre. Loop a rubber band from the lever's larger hole forward to the peg on the side of `head_frame2`. The band opens the mouth, the line closes it.
+
+**To puppeteer an axis by hand** some day, undo the drum screw and tie that line to a lever or a loop for your finger.
 
 ## Stage 5: Arm units (build two)
 
@@ -80,7 +116,7 @@ The head module is 66 mm wide and 150 mm tall from the bottom of the neck servo 
 2. `bracket_L` onto that horn (M3 x 6 from inside), tilt servo into it.
 3. `tilt_yoke` (four nuts in first) over the tilt servo.
 4. Bolt `slide_stage` on top with four M4 x 10 socket heads. Two go in through the floor of the cage, two through the access holes in the shelf.
-5. Piston servo (the 270° one) into the stage, shaft up. Horn on, then `pinion` on the horn with four M3 x 12.
+5. Piston servo into the stage, shaft up. Horn on, then `pinion` on the horn with four M3 x 12.
 6. Slide two M4 nuts into the slots at the back of `rack_guide` and bolt it to the shelf from below with two M4 x 16.
 7. Slide the `rack` into the guide from the front, teeth meshing with the pinion at about the middle of the rack. Fit an M3 x 16 and nut through the hole in the tail end as an end stop. A dab of silicone grease in the guide helps.
 8. Clamp a knuckle on each end of the outrigger and bolt the `servo_base` to it with an M6 x 30.
@@ -118,18 +154,20 @@ You can try the panel on any computer first with `python3 run.py --mock`.
 
 Open the panel, expand **Calibration**.
 
-1. With every slider at 0, each joint should sit square. If one is a little off, nudge its "centre us" value (10 us is about 1°) until it is. Bigger errors: lift the horn off and move it one spline tooth.
-2. Move each slider. If a joint goes the wrong way, tick **invert**.
-3. Set the jaw: in `config.json`, `jaw_closed` is the angle where Twist's mouth is just shut and `jaw_open` is a natural wide-open. Find both with the jaw slider.
-4. Press **Save calibration**.
+1. With every slider at 0, each joint should sit square. If one is a little off, nudge its "centre us" value (10 us is about 1°) until it is. Bigger errors: lift the horn off and move it one spline tooth, or for the cable joints re-clamp the lines.
+2. Move each slider. If a joint goes the wrong way, tick **invert**. For nod and tilt you can also just swap the two sheaths at the pull unit.
+3. Check the head with the twist at 0 first: `head_pitch` should nod, `head_roll` should tilt. Then turn the head and nod again. The software blends the nod and tilt lines so the head still nods toward wherever it is facing. If it nods sideways when turned, one of the three head joints needs **invert**.
+4. Cable joints have a `gear` number in `config.json`: how far the servo turns per degree at the joint. If the head only reaches 20° when you ask for 28°, raise `gear` for that joint in proportion.
+5. Set the jaw: `jaw_closed` is the angle where Twist's mouth is just shut and `jaw_open` is a natural wide-open. Find both with the jaw slider.
+6. Press **Save calibration**.
 
 Software limits in `config.json` are already inside the collision-checked range. Narrow them if the puppet's fabric binds earlier. Widen them only after checking by hand.
 
 ## Stage 8: Dress the puppet
 
-1. Feed the paddles in through the hole in Twist's back and up into the mouth: upper paddle above the top mouth plate where fingers go, lower paddle under the bottom plate where the thumb goes.
+1. Feed the head in through the hole in Twist's back, paddles first, and up into the mouth: upper paddle above the top mouth plate where fingers go, lower paddle under the bottom plate where the thumb goes.
 2. Loop a velcro strap or elastic through the paddle's side slots and around each mouth plate.
-3. Adjust until the jaw servo's axis lines up with the hinge of his mouth: slide the paddles in their slots, slide the entry pipe in its clamps, change the mast height, step the knuckle angles.
+3. Adjust until the jaw hinge lines up with the hinge of his mouth: slide the paddles in their slots, slide the entry pipe in its clamps, change the mast height, step the knuckle angles.
 4. Slide the boom in the carriage until the rig balances over the tripod with all servos relaxed.
 5. Clamp the arm rods.
 6. When it all sits right, tighten everything and drive a 3.5 x 13 self-tapper through the small hole in each clamp into the pipe.

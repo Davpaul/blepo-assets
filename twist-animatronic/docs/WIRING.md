@@ -15,6 +15,8 @@ Servos are hungry and electrically noisy, so they get their own 6 V rail. The Pi
 
 Never feed servo power from the Pi's 5 V pin. Thirteen servos can pull 10 A in a burst and would brown the Pi out.
 
+Using a scrap PC power supply instead: skip steps 1 to 3 and 6. Take 5 V (red wires) and ground (black) to both servo boards on separate pairs, and a third pair to the Pi's 5 V and GND pins with a 1000 µF capacitor across them at the Pi.
+
 If a servo board gets warm, the two body-lean servos are the reason. Wire their red and black leads straight to the 6 V output and leave only the signal wire on the board.
 
 ## Signal
@@ -39,27 +41,27 @@ The speaker's two wires go to the screw terminal on the amplifier.
 
 Brown or black wire toward the edge of the board (GND), orange or yellow toward the middle (signal).
 
-| Board | Channel | Joint | Servo |
-|---|---|---|---|
-| A | 0 | `yaw` body twist | DS3218 |
-| A | 1 | `lean_roll` body lean left/right | DS3235 |
-| A | 2 | `lean_pitch` body lean forward/back | DS3235 |
-| A | 4 | `head_yaw` head twist | DS3218 |
-| A | 5 | `head_roll` head tilt left/right | DS3218 |
-| A | 6 | `head_pitch` head nod | DS3218 |
-| A | 7 | `jaw` | DS3218 |
-| B | 0 | `pan_l` left arm aim sideways | DS3218 |
-| B | 1 | `tilt_l` left arm aim up/down | DS3218 |
-| B | 2 | `ext_l` left arm piston | DS3218 270° |
-| B | 4 | `pan_r` | DS3218 |
-| B | 5 | `tilt_r` | DS3218 |
-| B | 6 | `ext_r` | DS3218 270° |
+| Board | Channel | Joint | Servo | Where the servo sits |
+|---|---|---|---|---|
+| A | 0 | `yaw` body twist | MG996R | In `tripod_base` |
+| A | 1 | `lean_roll` body lean left/right | DS3218 | Lean stack on the turntable |
+| A | 2 | `lean_pitch` body lean forward/back | DS3218 | Lean stack |
+| A | 4 | `head_yaw` head twist | MG996R | In the puppet's head (`head_frame2`) |
+| A | 5 | `head_roll` head tilt | MG996R | Pull unit on the electronics board |
+| A | 6 | `head_pitch` head nod | MG996R | Pull unit |
+| A | 7 | `jaw` | MG996R | Pull unit |
+| B | 0 | `pan_l` left arm aim sideways | MG996R | Arm unit |
+| B | 1 | `tilt_l` left arm aim up/down | MG996R | Arm unit |
+| B | 2 | `ext_l` left arm piston | MG996R | Arm unit |
+| B | 4 | `pan_r` | MG996R | Arm unit |
+| B | 5 | `tilt_r` | MG996R | Arm unit |
+| B | 6 | `ext_r` | MG996R | Arm unit |
 
 Spare: A3, A8 to A15, B3, B7 to B15.
 
 ## Where it all lives
 
-Screw the Pi, both servo boards, the big buck converter and the amplifier to the electronics board on standoffs. The board clamps to the mast with two `pipe_saddle` parts, so everything rides with the puppet and only one cable (12 V) runs down to the floor. Leave that cable a loose loop at the turntable so Twist can turn 80° each way without tugging it.
+Screw the Pi, both servo boards, the big buck converter and the amplifier to the lower half of the electronics board on standoffs, and the three pull units across the top half with their sheath sockets pointing up. The board clamps to the mast with two `pipe_saddle` parts, so everything rides with the puppet and only one cable (12 V) runs down to the floor. Leave that cable a loose loop at the turntable so Twist can turn 80° each way without tugging it.
 
 The weight of the electronics at the back also balances the arm units at the front, which is kind to the lean servos.
 

@@ -1,5 +1,6 @@
 """Servo layer: named joints, calibration, software limits and smooth motion."""
 import json
+import math
 import threading
 import time
 
@@ -57,8 +58,29 @@ class Rig:
     def pulse(self, name, deg):
         j = self.joints[name]
         us_per_deg = 2000.0 / j['range_deg']
-        us = j['center_us'] + (-1 if j.get('invert') else 1) * deg * us_per_deg
+        us = j['center_us'] + (-1 if j.get('invert') else 1) * deg * j.get('gear', 1.0) * us_per_deg
         return max(500.0, min(2500.0, us))
+
+    def mechanism(self, pos):
+        """Joint angles as the puppeteer thinks of them -> angles the mechanism needs.
+
+        The neck nods and tilts at its base and twists above that, so a turned head has to share a
+        nod between the nod and tilt lines. This works that out, so 'head_pitch' always means a nod
+        in whatever direction the head is facing."""
+        out = dict(pos)
+        if not self.cfg.get('neck_mix'):
+            return out
+        y, p, r = (math.radians(pos[k]) for k in ('head_yaw', 'head_pitch', 'head_roll'))
+        cy, sy, cp, sp, cr, sr = math.cos(y), math.sin(y), math.cos(p), math.sin(p), math.cos(r), math.sin(r)
+        # wanted orientation R = Rz(yaw) Rx(pitch) Ry(roll); mechanism gives Rx(nod) Ry(tilt) Rz(twist)
+        r00, r01, r02 = cy * cr - sy * sp * sr, -sy * cp, cy * sr + sy * sp * cr
+        r12, r22 = sy * sr - cy * sp * cr, cp * cr
+        tilt = math.asin(max(-1.0, min(1.0, r02)))
+        nod = math.atan2(-r12, r22)
+        twist = math.atan2(-r01, r00)
+        for k, v in (('head_pitch', nod), ('head_roll', tilt), ('head_yaw', twist)):
+            out[k] = self.clamp(k, math.degrees(v))
+        return out
 
     # -------------------------------------------------------------- control
     def set(self, name, deg, direct=False):
@@ -98,8 +120,10 @@ class Rig:
                     move = err * min(1.0, 8.0 * dt)
                     cap = j['speed'] * dt
                     self.pos[n] += max(-cap, min(cap, move))
-                if self.enabled:
-                    self.boards[j['board']].set_us(j['ch'], self.pulse(n, self.pos[n]))
+            out = self.mechanism(self.pos)
+            if self.enabled:
+                for n, j in self.joints.items():
+                    self.boards[j['board']].set_us(j['ch'], self.pulse(n, out[n]))
 
     def _loop(self):
         dt = 1.0 / self.cfg.get('update_hz', 50)

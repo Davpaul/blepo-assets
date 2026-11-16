@@ -35,7 +35,6 @@ def shaft_rot(deg):
 
 A_ON_HORN = frame((SX + YC, SX, HORN_Z + 16), (0, -1, 0), (-1, 0, 0))     # bracket_L on a horn
 B_IN_A = L(V(SX + YC, P.PITCH_UP, YC - SX)) * L(V(0, 0, 0), V(0, 1, 0), -90)
-C_IN_B = L(V(P.JAW_FWD, P.JAW_UP, 0))
 FLIP = L(V(0, 0, 0), V(1, 0, 0), 180)
 
 _cache = {}
@@ -132,39 +131,34 @@ def build(d=26.7, pose=None, extras=True):
     K4 = K3 * knuckle_mate(d, 60)
     add('knuckle_4', kn, K4, PRINT2, 'body')
     add('pipe_entry', pipe(d, s5 + 40), K4 * L(V(-20, 0, 0)), PIPE, 'body')
-    I = L()
     k4r = (frame((zsep, -yk1 - c, zk3), (0, 0, 1), (-1, 0, 0)) * knuckle_mate(d, 60))
     p5 = tp(k4r, (s5, 0, 0))
     e5 = vsub(tp(k4r, (1, 0, 0)), tp(k4r, (0, 0, 0)))
     K5 = R * frame(p5, e5, (1, 0, 0))                          # boss faces +X, bolt sits up-back of the pipe
     add('knuckle_5', kn, K5, PRINT, 'body')
-    # ----------------------------------------------------------------- neck
+    # ------------------------------------------------------- neck and head (cable driven)
     n = vsub(tp(K5, (0, 0, 1)), tp(K5, (0, 0, 0)))            # K5 boss face normal (global)
     up = vsub(tp(R, (0, 0, 1)), tp(R, (0, 0, 0)))
-    xd = cross(n, up)
+    fwd = cross(up, n)
     yb0 = P.ring_ro(d) + 0.25 + P.TOOTH_SEP
     bolt = tp(K5, (0, c, yb0))                                  # bolt axis, on the neck tooth plane
-    o = tuple(bolt[i] - SX * xd[i] - yb0 * n[i] - P.NECK_DROP * up[i] for i in range(3))
-    N1 = frame(o, xd, up)
-    add('neck_base', part('neck_base', d), N1, PRINT2, 'body')
-    add('servo_head_yaw', sv, N1, SERVO, 'body')
-    An = N1 * shaft_rot(q['head_yaw']) * A_ON_HORN
-    add('neck_bracket_L', part('bracket_L'), An, PRINT, 'head_yaw')
-    add('servo_head_roll', sv, An, SERVO, 'head_yaw')
-    G3n = An * shaft_rot(q['head_roll'])
-    add('neck_roll_yoke', part('roll_yoke'), G3n, PRINT2, 'head_roll')
-    Bn = G3n * B_IN_A
-    add('servo_head_pitch', sv, Bn, SERVO, 'head_roll')
-    G4n = Bn * shaft_rot(q['head_pitch'])
-    add('neck_pitch_yoke', part('pitch_yoke'), G4n, PRINT, 'head')
-    add('head_frame', part('head_frame'), G4n, PRINT2, 'head')
-    Cn = G4n * C_IN_B
-    add('servo_jaw', sv, Cn, SERVO, 'head')
-    add('paddle_upper', part('paddle'), G4n * frame((SX + P.JAW_FWD + 30, P.TOP4, YC), (1, 0, 0), (0, -1, 0)),
-        PRINT, 'head')
-    J = Cn * shaft_rot(-q['jaw'])
-    add('jaw_yoke', part('jaw_yoke'), J, PRINT, 'jaw')
-    add('paddle_lower', part('paddle'), J * frame((SX + 30, P.JAW_FLOOR + P.TW, YC), (1, 0, 0), (0, 1, 0)), PRINT2, 'jaw')
+    o = tuple(bolt[i] - yb0 * n[i] - P.LEG_Y * fwd[i] - P.NECK_BOLT_Z * up[i] for i in range(3))
+    N = frame(o, n, up)
+    add('neck_leg', part('neck_leg', d), N, PRINT, 'body')
+    add('neck_fork', part('neck_fork'), N, PRINT2, 'body')
+    NOD = N * rot((0, 0, P.ZJ), (1, 0, 0), q['head_pitch'])
+    add('neck_cross', part('neck_cross'), NOD, PRINT, 'nod')
+    TOP = NOD * rot((0, 0, P.ZR), (0, 1, 0), q['head_roll'])
+    add('neck_top', part('neck_top'), TOP, PRINT, 'neck_top')
+    H = TOP * L(V(0, 0, 0), V(0, 0, 1), q['head_yaw'])
+    add('head_frame2', part('head_frame2'), H, PRINT2, 'head')
+    if 'servo_head' not in _cache:
+        _cache['servo_head'] = P.servo_in_head(P.servo()).val()
+    add('servo_head_twist', _cache['servo_head'], H, SERVO, 'head')
+    add('paddle_upper', part('paddle'), H * frame((0, P.HINGE_Y + 6, P.PLATE_Z0), (0, 1, 0), (0, 0, -1)), PRINT, 'head')
+    J = H * rot((0, P.HINGE_Y, P.HINGE_Z), (1, 0, 0), -q['jaw'])
+    add('jaw_lever', part('jaw_lever'), J, PRINT, 'jaw')
+    add('paddle_lower', part('paddle'), J * frame((0, P.HINGE_Y + 6, P.HINGE_Z - 5), (0, 1, 0), (0, 0, 1)), PRINT2, 'jaw')
     # ------------------------------------------------------------ arm units
     yk6 = -62.0
     K6 = R * frame((0, yk6, 0), (0, 1, 0), (0, 0, 1))
@@ -211,13 +205,18 @@ def build(d=26.7, pose=None, extras=True):
         add('pipe_saddle_%d' % (k + 1), sd, R * frame((zsep, -yk1 - c, zz), (0, 0, 1), (0, 1, 0)), PRINT2, 'body')
     if extras:
         yb = -yk1 - c - ro - 2
-        board = cq.Workplane().box(150, 9, 170, centered=(True, False, False)).translate((zsep, yb - 9, 60)).val()
+        board = cq.Workplane().box(230, 9, 175, centered=(True, False, False)).translate((zsep, yb - 9, 60)).val()
         add('electronics_board', board, R, WOOD, 'body')
-        for nm, (bx, bz), (px, pz) in (('raspberry_pi', (65, 30), (-35, 195)), ('servo_driver_1', (62, 26), (35, 200)),
-                                        ('servo_driver_2', (62, 26), (35, 165)), ('buck_converter', (60, 52), (-35, 110)),
-                                        ('amp', (20, 20), (35, 110))):
+        for nm, (bx, bz), (px, pz) in (('raspberry_pi', (65, 30), (-5, 88)), ('servo_driver_1', (62, 26), (75, 80)),
+                                        ('servo_driver_2', (62, 26), (75, 112)), ('buck_converter', (60, 52), (-78, 95)),
+                                        ('amp', (20, 20), (-5, 122))):
             b = cq.Workplane().box(bx, 12, bz, centered=(True, False, True)).translate((zsep + px, yb - 9 - 16, pz)).val()
             add(nm, b, R, ELEC, 'body')
+    for k, (nm, px) in enumerate((('nod', -75), ('tilt', 0), ('jaw', 75))):
+        U = R * frame((zsep + px, -yk1 - c - ro - 2 - 9 + P.BACK0, 172), (0, 0, 1), (0, -1, 0))
+        add('pull_unit_' + nm, part('pull_unit'), U, PRINT, 'body')
+        add('servo_' + nm, sv, U, SERVO, 'body')
+        add('drum_' + nm, part('drum'), U * L(V(SX, 0, HORN_Z)), PRINT2, 'body')
     # -------------------------------------------------------------- speaker
     K9 = R * frame((zsep, -yk1 - c, 145), (0, 0, 1), (0, 1, 0))
     add('knuckle_speaker', kn, K9, PRINT, 'body')
@@ -235,20 +234,6 @@ def vsub(a, b):
 
 def cross(a, b):
     return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
-
-
-def device_neck_unused(d):
-    """neck_base cage frame relative to the knuckle on the end of the entry pipe."""
-    cc, zt = P.boss_c(d), P.ring_ro(d) + 0.25
-    yb0 = zt + P.TOOTH_SEP
-    # knuckle boss axis is its local z at (0, cc); neck_base boss axis is its local y at (SX, z=-30)
-    # neck local y -> knuckle +z, neck local z (shaft) -> chosen by the tooth step, here 60 deg from knuckle y
-    a = math.radians(60)
-    zdir = (math.sin(a), math.cos(a), 0)           # neck shaft direction in knuckle frame
-    ydir = (0, 0, 1)
-    xdir = (ydir[1] * zdir[2] - ydir[2] * zdir[1], ydir[2] * zdir[0] - ydir[0] * zdir[2], 0)
-    o = (0 - SX * xdir[0] + 30 * zdir[0], cc - SX * xdir[1] + 30 * zdir[1], 0)
-    return frame(o, xdir, zdir)
 
 
 if __name__ == '__main__':

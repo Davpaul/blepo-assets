@@ -13,13 +13,18 @@ RY = lambda a: ((0, 1, 0), a)
 COMMON = {
     'tripod_base': (P.tripod_base, 1, RX(180), 'no', 'Flange on the bed. 5 walls, 40% infill: this carries everything.'),
     'yaw_hub': (P.yaw_hub, 1, None, 'no', ''),
-    'bracket_L': (P.bracket_L, 4, RX(90), 'no', 'Plate on the bed. Top wall is a 36 mm bridge.'),
-    'roll_yoke': (P.roll_yoke, 2, RX(-90), 'yes, bed only', 'Servo cage on the bed, arms pointing up.'),
-    'pitch_yoke': (P.pitch_yoke, 2, RX(-90), 'no', 'Top plate on the bed, arms pointing up.'),
+    'bracket_L': (P.bracket_L, 3, RX(90), 'no', 'Plate on the bed. Top wall is a 36 mm bridge.'),
+    'roll_yoke': (P.roll_yoke, 1, RX(-90), 'yes, bed only', 'Servo cage on the bed, arms pointing up.'),
+    'pitch_yoke': (P.pitch_yoke, 1, RX(-90), 'no', 'Top plate on the bed, arms pointing up.'),
     'tilt_yoke': (lambda: P.pitch_yoke(P.H_TILT), 2, RX(-90), 'no', 'Tall version of pitch_yoke for the arm units.'),
-    'head_frame': (P.head_frame, 1, RX(-90), 'no', 'Plate on the bed.'),
-    'jaw_yoke': (P.jaw_yoke, 1, RX(90), 'no', 'Tongue on the bed.'),
+    'neck_fork': (P.neck_fork, 1, None, 'no', 'Disc on the bed, fork up.'),
+    'neck_cross': (P.neck_cross, 1, None, 'no', '100% infill, it is tiny.'),
+    'neck_top': (P.neck_top, 1, RX(180), 'no', 'Disc on the bed, posts up.'),
+    'head_frame2': (P.head_frame2, 1, RY(-90), 'no', 'On its side. Top wall is a 24 mm bridge.'),
+    'jaw_lever': (P.jaw_lever, 1, None, 'no', 'Tongue on the bed, lever up.'),
     'paddle': (P.paddle, 2, None, 'no', 'Or cut from 3 mm plywood or acrylic.'),
+    'pull_unit': (P.pull_unit, 3, None, 'no', 'Flange on the bed.'),
+    'drum': (P.drum, 3, None, 'no', '4 walls.'),
     'servo_base': (P.servo_base, 2, RX(90), 'no', 'Teeth facing up.'),
     'slide_stage': (P.slide_stage, 2, RX(180), 'no', 'Shelf on the bed.'),
     'rack_guide': (P.rack_guide, 2, RX(90), 'no', 'Standing on end.'),
@@ -31,7 +36,7 @@ COMMON = {
 }
 PER_PIPE = {
     'knuckle': (P.knuckle, 10, RY(-90), 'no', 'Bore vertical. 5 walls. Print one first and test it on your pipe.'),
-    'neck_base': (P.neck_base, 1, RX(-90), 'no', 'Leg on the bed, teeth up.'),
+    'neck_leg': (P.neck_leg, 1, RY(90), 'no', 'Teeth up.'),
     'carriage': (P.carriage, 1, RX(90), 'no', 'Flange on the bed. 5 walls, 40% infill.'),
     'pipe_saddle': (P.pipe_saddle, 2, RY(-90), 'no', 'Bore vertical.'),
 }

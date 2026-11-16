@@ -170,11 +170,11 @@ def render_sheet(sheet, labels):
 def ghost_puppet(items):
     """Very rough stand-in for the puppet so the overview shows where he sits."""
     c = {n: s.BoundingBox() for n, s, *_ in items}
-    hf, nb = c['head_frame'], c['neck_base']
+    hf, nb = c['head_frame2'], c['neck_fork']
     head = (cq.Workplane().sphere(1).val().scale(1.0)
             .transformGeometry(cq.Matrix([[95, 0, 0, 0], [0, 125, 0, hf.ymax - 95], [0, 0, 85, hf.zmax - 10]])))
     body = (cq.Workplane().circle(105).workplane(offset=250).circle(70).loft()
-            .translate((0, (nb.ymin + nb.ymax) / 2 - 15, nb.zmin - 215)).val())
+            .translate((0, (nb.ymin + nb.ymax) / 2 - 15, nb.zmin - 235)).val())
     return [('ghost_head', head, (0.55, 0.3, 0.75), 'g', 0.13), ('ghost_body', body, (0.55, 0.3, 0.75), 'g', 0.13)]
 
 
@@ -190,9 +190,11 @@ if __name__ == '__main__':
         ('tripod base\n+ body twist', 'tripod_base', (330, 60)),
         ('body lean\n(2 servos)', 'lean_roll_yoke', (420, -40)),
         ('boom', 'pipe_boom', (-330, 200)),
-        ('mast', 'pipe_mast', (-330, -330)),
-        ('entry pipe\n(goes in the back hole)', 'pipe_entry', (-480, -330)),
-        ('neck: twist, tilt, nod', 'neck_roll_yoke', (-520, -120)),
+        ('mast', 'pipe_mast', (-420, 330)),
+        ('entry pipe\n(goes in the back hole)', 'pipe_entry', (-560, 160)),
+        ('cable neck:\nnod and tilt', 'neck_top', (-560, -40)),
+        ('head twist servo', 'head_frame2', (-420, -200)),
+        ('3 pull units\n(nod, tilt, jaw)', 'pull_unit_nod', (-330, -150)),
         ('mouth paddles', 'paddle_upper', (330, -200)),
         ('arm unit', 'arm_tilt_yoke_l', (380, 60)),
         ('arm unit', 'arm_tilt_yoke_r', (-420, 330)),
@@ -214,13 +216,18 @@ if __name__ == '__main__':
         ('turntable deck', 'deck_turntable', (-560, -40)), ('bracket_L', 'lean_bracket_L', (-480, -60)),
         ('roll_yoke', 'lean_roll_yoke', (430, 30)), ('pitch_yoke', 'lean_pitch_yoke', (-430, -60)),
         ('carriage', 'carriage', (400, -120)), ('boom pipe', 'pipe_boom', (-380, -230))])
-    head = pick(assembly.build(26.7, dict(jaw=30)), 'neck_', 'head', 'jaw', 'paddle', 'knuckle_5', 'pipe_entry')
+    head = pick(assembly.build(26.7, dict(jaw=30)), 'neck_', 'head', 'jaw_lever', 'paddle', 'knuckle_5', 'pipe_entry')
     render(head, 'head', (1300, 800, 350), zoom=0.8, auto=True, labels=[
-        ('neck_base', 'neck_base', (-380, 60)), ('knuckle', 'knuckle_5', (330, 120)),
-        ('bracket_L', 'neck_bracket_L', (-380, 0)), ('roll_yoke', 'neck_roll_yoke', (-430, -60)),
-        ('pitch_yoke', 'neck_pitch_yoke', (-380, -200)), ('head_frame', 'head_frame', (60, -200)),
-        ('jaw_yoke', 'jaw_yoke', (60, 330)), ('upper paddle\n(fixed)', 'paddle_upper', (120, -200)),
-        ('lower paddle\n(jaw)', 'paddle_lower', (200, 160)), ('entry pipe', 'pipe_entry', (-250, 160))])
+        ('neck_leg', 'neck_leg', 0), ('knuckle', 'knuckle_5', 0), ('neck_fork\n(4 sheath sockets under)', 'neck_fork', 0),
+        ('neck_cross', 'neck_cross', 0), ('neck_top\n(4 lines tie off here)', 'neck_top', 0),
+        ('head_frame2', 'head_frame2', 0), ('head twist servo', 'servo_head_twist', 0),
+        ('jaw_lever', 'jaw_lever', 0), ('upper paddle\n(fixed)', 'paddle_upper', 0),
+        ('lower paddle\n(jaw)', 'paddle_lower', 0), ('entry pipe', 'pipe_entry', 0)])
+    render(head, 'head_side', (2000, 0, 0), zoom=0.9)
+    pu = pick(rest, 'pull_unit_tilt', 'servo_tilt', 'drum_tilt')
+    pu = [it for it in pu if '_l' not in it[0][-2:] and '_r' not in it[0][-2:]]
+    render(pu, 'pull_unit', (700, -1300, 900), zoom=0.8, auto=True, labels=[
+        ('pull_unit', 'pull_unit_tilt', 0), ('drum', 'drum_tilt', 0), ('servo', 'servo_tilt', 0)])
     arm = [it for it in assembly.build(26.7, dict(ext_r=20)) if it[0].endswith('_r') and 'rod_r' not in it[0]]
     render(arm, 'arm_unit', (900, 1100, 500), zoom=0.8, auto=True, labels=[
         ('knuckle', 'knuckle_arm_r', (330, -160)), ('servo_base\n(pan servo)', 'arm_base_r', (420, 40)),
@@ -229,13 +236,13 @@ if __name__ == '__main__':
         ('rack', 'arm_rack_r', (-380, 60)), ('rack_guide', 'arm_rack_guide_r', (-430, 110)),
         ('rod_cap\n(clamps the arm rod)', 'arm_rod_cap_r', (-330, -30))])
     frm = pick(rest, 'pipe', 'knuckle', 'carriage', 'electronics', 'raspberry', 'driver', 'buck', 'amp', 'speaker',
-               'neck_base', 'arm_base', 'saddle')
+               'neck_leg', 'arm_base', 'saddle', 'pull_unit', 'drum')
     render(frm, 'frame', (1000, -1100, 600), size=(1800, 1600), zoom=0.8, auto=True, labels=[
         ('boom', 'pipe_boom', (200, 230)), ('mast', 'pipe_mast', (330, -60)),
         ('entry pipe', 'pipe_entry', (-60, -260)), ('outrigger', 'pipe_outrigger', (-200, 260)),
         ('knuckle pair', 'knuckle_2', (380, 120)), ('knuckle pair', 'knuckle_4', (330, -160)),
         ('pipe_saddle x2', 'pipe_saddle_2', (420, 0)), ('speaker_mount', 'speaker_mount', (430, 60)),
-        ('carriage', 'carriage', (-60, 300)), ('neck_base', 'neck_base', (-380, -60)),
+        ('carriage', 'carriage', (-60, 300)), ('neck_leg', 'neck_leg', (-380, -60)), ('pull_unit x3', 'pull_unit_jaw', 0),
         ('servo_base', 'arm_base_r', (330, 200)), ('servo_base', 'arm_base_l', (-380, 60)),
         ('electronics board', 'electronics_board', (330, -330))])
     # contact sheet of every printed part, in print orientation

@@ -44,15 +44,12 @@ PITCH_UP = H_ROLL + CAGE_HY            # roll axis to pitch axis (41)
 WEB4 = 6.0                 # pitch yoke top plate thickness
 MNT_X, MNT_Z = 7.0, 24.0   # M4 mounting pattern on top of a pitch yoke
 
-JAW_FWD = 65.0             # pitch axis to jaw axis
-JAW_UP = 19.0              # jaw axis height in pitch-yoke frame (see head_frame)
-
 TOOTH_N = 24
 TOOTH_SEP = 1.4            # distance between tooth base planes when seated
 BOSS_R = 18.0
 BOSS_T = 12.0
 
-GEAR_M, GEAR_Z = 1.5, 36   # arm piston rack and pinion
+GEAR_M, GEAR_Z = 1.5, 44   # arm piston rack and pinion
 GEAR_T = 10.0
 RACK_LEN = 180.0
 GUIDE_LEN = 40.0
@@ -234,43 +231,7 @@ def mount_holes(y0, y1, r=2.2):
     return out
 
 
-# ---------------------------------------------------------------------- head
 TOP4 = H_PITCH + WEB4      # top of pitch yoke in its cage frame (33)
-PLATE_T = 6.0
-
-
-JAW_FLOOR = -11.0          # underside of the jaw yoke in the jaw cage frame
-
-
-def c_in_b(obj):
-    """Jaw servo cage frame (C) placed in the pitch cage frame (B)."""
-    return obj.translate((JAW_FWD, JAW_UP, 0))
-
-
-def head_frame():
-    """Bolts on the neck pitch yoke. Holds the jaw servo and the fixed (upper) paddle."""
-    p = box(SX - 15, SX + JAW_FWD + CAGE_HX - SX + 0.01, TOP4, TOP4 + PLATE_T, IDLE0, HORN1)
-    p = p.union(box(SX + JAW_FWD + 17, SX + JAW_FWD + 60, TOP4, TOP4 + PLATE_T, YC - 24, YC + 24))
-    p = p.union(c_in_b(cage()))
-    p = p.cut(mount_holes(TOP4 - 1, TOP4 + 12))
-    for dx in (40, 52):
-        p = p.cut(cyl('y', 2.2, TOP4 - 1, TOP4 + 12, (SX + JAW_FWD + dx, 0, YC)))
-    return p
-
-
-def jaw_yoke():
-    """Swings around the jaw servo cage, carries the moving (lower) paddle. Built in frame C."""
-    y = yoke(25.0, 5.0, web_x=(0.0, 14.0), horn_rot=45)
-    y = y.rotate((SX, 0, 0), (SX, 0, 1), -90)          # web now faces +x (forward)
-    # relief so the arms clear the head plate when over-closed a few degrees
-    wedge = (WP('XY').polyline([(SX + 8, 13.5), (SX + 31, 13.5), (SX + 31, 0)]).close()
-             .extrude(80).translate((0, 0, -20)))
-    y = y.cut(wedge)
-    y = y.union(box(SX + 29.9, SX + 62, JAW_FLOOR, JAW_FLOOR + TW, YC - 22, YC + 22))
-    y = y.cut(box(SX - 20, SX + 70, -20, JAW_FLOOR, IDLE0 - 1, HORN1 + 1))      # flat base for printing
-    for dx in (40, 52):
-        y = y.cut(cyl('y', 2.2, -13, -4, (SX + dx, 0, YC)))
-    return y
 
 
 def paddle():
@@ -317,22 +278,6 @@ def knuckle(d):
     k = k.cut(cylz(3.25, zt - 19, zt + 3, 0, c))
     k = k.cut(cylz(1.5, -ro - 1, -d / 2 + 1, 0, 0))
     return k
-
-
-NECK_DROP = -33.0          # neck_base: height of the clamp bolt in the cage frame
-
-
-def neck_base(d):
-    """Cage for the neck yaw servo with a drop leg, so the entry pipe sits on the centre line."""
-    ro = ring_ro(d)
-    yb0 = ro + 0.25 + TOOTH_SEP          # tooth base plane of this part
-    zb = NECK_DROP
-    c = cage()
-    c = c.union(box(SX - 18, SX + 18, CAGE_HY - 0.1, yb0 + BOSS_T, BACK0, EAR_Z))
-    c = c.union(box(SX - 18, SX + 18, yb0 + 4, yb0 + BOSS_T, zb, BACK0 + 0.1))
-    c = c.union(to_axis(tooth_boss(), '-y', (SX, yb0, zb)))
-    c = c.cut(to_axis(tooth_boss_cut(False), '-y', (SX, yb0, zb)))
-    return c
 
 
 def carriage(d):
@@ -559,3 +504,152 @@ def pipe_saddle(d):
     for y in (-ro - 9, ro + 9):
         k = k.cut(cylz(2.3, -ro - 3, -ro + 5, 0, y))
     return k
+
+
+# ===================================================================== cable head (version 2)
+# Frame N: origin on the head-twist axis at the top face of neck_top. x right, y forward, z up.
+ZJ = -26.0                 # nod axis height (x pin)
+ZR = ZJ + 7.0              # tilt axis height (y pin)
+RT = 26.0                  # radius of the four neck lines
+SP_TOP = ZJ - 24.0         # top of the fixed spider
+SP_T = 10.0
+TAB_T = 6.0
+LEG_Y = -22.0
+NECK_BOLT_Z = SP_TOP - SP_T - TAB_T - 22.0
+NECK_BOLTS = ((22.0, -12.0), (12.0, -32.0))
+HINGE_Y, HINGE_Z = 34.0, 6.0
+PLATE_Z0, PLATE_Z1 = HORN_Z - EAR_Z, HORN_Z - EAR_Z + TW      # head plate = ear wall of the twist servo cage
+LEVER_TIP = (22.0, 22.0)   # jaw line attachment (y, z), mouth closed
+DRUM_R = 12.7              # line radius on the servo drums
+LINE_R, SHEATH_R = 0.8, 2.1
+
+
+def neck_fork():
+    """Fixed half of the neck joint: four sheath sockets underneath, fork for the nod pin on top."""
+    s = cylz(31, SP_TOP - SP_T, SP_TOP).union(box(4, 34, -40, -4, SP_TOP - SP_T, SP_TOP))
+    for sx in (-1, 1):
+        x0, x1 = (10.5, 17.0) if sx > 0 else (-17.0, -10.5)
+        s = s.union(box(x0, x1, -8, 8, SP_TOP - 0.1, ZJ)).union(cyl('x', 8, x0, x1, (0, 0, ZJ)))
+    s = s.cut(cyl('x', 1.65, -18, 18, (0, 0, ZJ)))
+    for x, y in ((0, RT), (0, -RT), (RT, 0), (-RT, 0)):
+        s = s.cut(cylz(SHEATH_R, SP_TOP - SP_T - 0.1, SP_TOP - 3, x, y))
+        s = s.cut(cylz(LINE_R, SP_TOP - SP_T, SP_TOP + 1, x, y))
+    for x, y in NECK_BOLTS:
+        s = s.cut(cylz(2.2, SP_TOP - SP_T - 1, SP_TOP + 1, x, y))
+    return s
+
+
+def neck_leg(d):
+    """Bolts under neck_fork and carries the toothed boss that mates with the entry-pipe knuckle."""
+    yb0 = ring_ro(d) + 0.25 + TOOTH_SEP
+    z1 = SP_TOP - SP_T
+    s = box(4, yb0 + BOSS_T, -40, -4, z1 - TAB_T, z1)
+    s = s.union(box(yb0 + 4, yb0 + BOSS_T, -40, -4, NECK_BOLT_Z, z1))
+    s = s.union(to_axis(tooth_boss(), '-x', (yb0, LEG_Y, NECK_BOLT_Z)))
+    s = s.cut(to_axis(tooth_boss_cut(False), '-x', (yb0, LEG_Y, NECK_BOLT_Z)))
+    for x, y in NECK_BOLTS:
+        s = s.cut(cylz(2.2, z1 - TAB_T - 1, z1 + 1, x, y))
+        s = s.cut(hexz(7.2, z1 - TAB_T - 0.1, z1 - TAB_T + 3.4).translate((x, y, 0)))
+    return s
+
+
+def neck_cross():
+    """Centre block of the neck joint. Two M3 pins cross it at right angles, 7 mm apart in height."""
+    s = box(-10, 10, -10, 10, ZJ - 5, ZJ + 12)
+    s = s.cut(cyl('x', 1.65, -11, 11, (0, 0, ZJ))).cut(cyl('y', 1.65, -11, 11, (0, 0, ZR)))
+    return s
+
+
+def neck_top():
+    """Moving half of the neck joint. The head-twist servo's horn bolts on top; four lines tie off here."""
+    s = cylz(29, -6, 0)
+    for sy in (-1, 1):
+        y0, y1 = (10.5, 15.5) if sy > 0 else (-15.5, -10.5)
+        s = s.union(box(-6, 6, y0, y1, ZR, -5.9)).union(cyl('y', 6, y0, y1, (0, 0, ZR)))
+        s = s.union(box(-4, 4, sy * RT - 4, sy * RT + 4, ZJ, -5.9))
+        s = s.union(box(sy * RT - 4, sy * RT + 4, -4, 4, ZR, -5.9))
+    s = s.cut(cyl('y', 1.65, -17, 17, (0, 0, ZR)))
+    for x, y in ((0, RT), (0, -RT), (RT, 0), (-RT, 0)):
+        s = s.cut(cylz(LINE_R, ZJ - 1, 1, x, y)).cut(cylz(2.5, -3, 0.1, x, y))
+    s = s.cut(to_axis(horn_cut(6, cb=3.0, cbw=6.0, rot=45), '-z', (0, 0, 0)))
+    return s
+
+
+def _cage_in_head():
+    return (cage(pivot=False).rotate((0, 0, 0), (1, 0, 0), 180).rotate((0, 0, 0), (0, 0, 1), 90)
+            .translate((0, -SX, HORN_Z)))
+
+
+def servo_in_head(shape):
+    return shape.rotate((0, 0, 0), (1, 0, 0), 180).rotate((0, 0, 0), (0, 0, 1), 90).translate((0, -SX, HORN_Z))
+
+
+def head_frame2():
+    """Holds the head-twist servo (shaft down), the fixed upper paddle and the jaw hinge."""
+    s = _cage_in_head()
+    s = s.union(box(-15, 15, 17.7, 82, PLATE_Z0, PLATE_Z1))
+    s = s.union(box(-15, 15, HINGE_Y - 5, HINGE_Y + 5, HINGE_Z, PLATE_Z0 + 0.1))
+    s = s.union(cyl('x', 5, -15, 15, (0, HINGE_Y, HINGE_Z)))
+    s = s.cut(cyl('x', 1.65, -16, 16, (0, HINGE_Y, HINGE_Z)))
+    for y in (HINGE_Y + 16, HINGE_Y + 28):
+        s = s.cut(cylz(2.2, PLATE_Z0 - 1, PLATE_Z1 + 1, 0, y))
+    # sheath stop for the jaw line, on the side of the cage
+    zs = LEVER_TIP[1] + 2
+    s = s.union(box(14.9, 22, -34, -24, zs - 5, zs + 5))
+    s = s.cut(cyl('y', SHEATH_R, -34.1, -28, (18.2, 0, zs))).cut(cyl('y', LINE_R, -35, -23, (18.2, 0, zs)))
+    # peg for the elastic that opens the jaw
+    zp = PLATE_Z1 - 0.6
+    s = s.union(cyl('x', 2.3, 14.9, 20, (0, 77, zp))).union(cyl('x', 3.6, 20, 21.5, (0, 77, zp)))
+    return s
+
+
+def jaw_lever():
+    """Lower jaw: hinges under head_frame2, carries the lower paddle. A line pulls the lever back to
+    close the mouth, an elastic band pulls it forward to open."""
+    s = box(-20.6, 20.6, HINGE_Y + 7, HINGE_Y + 40, HINGE_Z - 9.6, HINGE_Z - 5)
+    for sx in (-1, 1):
+        x0, x1 = (15.6, 20.6) if sx > 0 else (-20.6, -15.6)
+        s = s.union(box(x0, x1, HINGE_Y, HINGE_Y + 40, HINGE_Z - 9.6, HINGE_Z - 5))
+        s = s.union(box(x0, x1, HINGE_Y - 4, HINGE_Y + 6, HINGE_Z - 9.6, HINGE_Z))
+        s = s.union(cyl('x', 5.5, x0, x1, (0, HINGE_Y, HINGE_Z)))
+    ty, tz = LEVER_TIP
+    lv = (WP('YZ').polyline([(HINGE_Y + 3.2, HINGE_Z + 2.4), (HINGE_Y - 3.2, HINGE_Z - 2.4),
+                             (ty - 3.2, tz - 2.4), (ty + 3.2, tz + 2.4)]).close().extrude(5)
+          .union(WP('YZ').center(ty, tz).circle(4).extrude(5)).translate((15.6, 0, 0)))
+    s = s.union(lv)
+    s = s.cut(cyl('x', 1.65, -21, 21, (0, HINGE_Y, HINGE_Z)))
+    s = s.cut(cyl('x', 0.9, 15, 21, (0, ty, tz)))
+    s = s.cut(cyl('x', 1.6, 15, 21, (0, HINGE_Y + 0.6 * (ty - HINGE_Y), HINGE_Z + 0.6 * (tz - HINGE_Z))))
+    for y in (HINGE_Y + 16, HINGE_Y + 28):
+        s = s.cut(cylz(2.2, HINGE_Z - 10, HINGE_Z - 4, 0, y))
+    return s
+
+
+def drum():
+    """Line drum for a disc horn. Two lines (or one) wrap the V groove and clamp under one M3 screw."""
+    d = cylz(17, 0, 10)
+    vee = (WP('XZ').polyline([(17.6, 0.8), (DRUM_R, 5), (17.6, 9.2)]).close()
+           .revolve(360, (0, 0, 0), (0, 1, 0)))
+    d = d.cut(vee).cut(horn_cut(10, rot=45))
+    d = d.cut(box(-17.5, -10.5, -1, 1, 5, 10.5))
+    d = d.cut(cylz(1.3, 4, 10.5, -9.5, 3.2))
+    return d
+
+
+def pull_unit():
+    """Holds one servo and the two sheath ends its drum pulls from. Screws flat to plywood."""
+    x1 = 54.0
+    s = cage(pivot=False)
+    s = s.union(box(-CAGE_HX, x1, -24, 24, BACK0, BACK0 + 3))
+    s = s.union(box(-CAGE_HX, x1, -CAGE_HY, CAGE_HY, BACK0, BACK1))
+    for sy in (-1, 1):
+        y0, y1 = (CAV_HY, CAGE_HY) if sy > 0 else (-CAGE_HY, -CAV_HY)
+        s = s.union(box(CAGE_HX - 0.1, x1, y0, y1, BACK1 - 0.1, EAR_Z))
+        s = s.union(box(x1 - 8, x1, sy * DRUM_R - 4.2, sy * DRUM_R + 4.2, EAR_Z - 0.1, HORN_Z + 12))
+    s = s.union(box(CAGE_HX - 0.1, x1, -CAGE_HY, CAGE_HY, EAR_Z - TW, EAR_Z))
+    for sy in (-1, 1):
+        s = s.cut(cyl('x', SHEATH_R, x1 - 6, x1 + 0.1, (0, sy * DRUM_R, HORN_Z + 5)))
+        s = s.cut(cyl('x', LINE_R, x1 - 9, x1 + 1, (0, sy * DRUM_R, HORN_Z + 5)))
+        for x in (-20, x1 - 8):
+            s = s.cut(cylz(2.1, BACK0 - 1, BACK0 + 4, x, sy * 20))
+    return s
