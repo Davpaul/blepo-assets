@@ -47,6 +47,25 @@ jobs:
           path: ~/.platformio
           key: pio-beltcnc-${{ env.FLUIDNC_REF }}
 
+      - name: Patch simulator console for newer Linux headers
+        # termios.h on current Linux defines extra baud-rate macros (B10000000 ...) that clash
+        # with Arduino's binary constants. FluidNC undefines the older ones; undefine them all.
+        # This only touches the PC simulator, not the ESP32 firmware.
+        run: |
+          python - <<'PY'
+          import itertools, re
+          names = ["B" + "".join(b) for n in range(1, 9) for b in itertools.product("01", repeat=n)]
+          names += ["B%d" % v for v in (50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800, 9600, 19200, 38400, 57600,
+                                        115200, 230400, 460800, 500000, 576000, 921600, 1000000, 1152000, 1500000, 2000000,
+                                        2500000, 3000000, 3500000, 4000000, 5000000, 10000000)]
+          undefs = "".join("#ifdef %s\n#    undef %s\n#endif\n" % (n, n) for n in sorted(set(names)))
+          path = "fluidnc/FluidNC/posix/Console.cpp"
+          src = open(path).read()
+          marker = '#include "Serial.h"'
+          assert marker in src
+          open(path, "w").write(src.replace(marker, undefs + marker, 1))
+          PY
+
       - name: Build simulator
         working-directory: fluidnc
         run: pio run -e linux
