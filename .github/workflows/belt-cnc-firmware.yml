@@ -1,0 +1,70 @@
+name: Belt CNC firmware
+
+# Builds FluidNC with the belt-cnc kinematics module, runs it in FluidNC's own
+# simulator, and packages the firmware, flashing scripts and setup tools.
+on:
+  push:
+    paths:
+      - "belt-cnc/firmware/**"
+      - "belt-cnc/tools/**"
+      - ".github/workflows/belt-cnc-firmware.yml"
+  workflow_dispatch:
+
+env:
+  FLUIDNC_REF: 22e2add7ef2bd21a285ce026c101796d14094246   # the FluidNC commit this module was written against
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch FluidNC
+        run: |
+          git clone https://github.com/bdring/FluidNC.git fluidnc
+          git -C fluidnc checkout "$FLUIDNC_REF"
+          cp belt-cnc/firmware/BeltCNC.h belt-cnc/firmware/BeltCNC.cpp belt-cnc/firmware/BeltKin.h fluidnc/FluidNC/src/Kinematics/
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install tools
+        run: pip install "platformio==6.1.*" numpy pyserial
+
+      - name: Python tool tests
+        run: python belt-cnc/tools/test_tools.py
+
+      - name: Belt maths, firmware against the Python model
+        run: |
+          python belt-cnc/tools/gen_test_vectors.py
+          g++ -std=c++17 -O2 -I belt-cnc/firmware belt-cnc/firmware/test/host_test.cpp -o belt_host_test
+          ./belt_host_test
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-beltcnc-${{ env.FLUIDNC_REF }}
+
+      - name: Build simulator
+        working-directory: fluidnc
+        run: pio run -e linux
+
+      - name: Run the firmware in the simulator
+        run: python belt-cnc/tools/sim_test.py fluidnc/.pio/build/linux/program belt-cnc/firmware/belt-cnc.yaml
+
+      - name: Build ESP32 firmware
+        working-directory: fluidnc
+        run: |
+          pio run -e wifi
+          pio run -e wifi -t buildfs
+
+      - name: Package
+        run: python belt-cnc/tools/ci_package.py fluidnc belt-cnc dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: belt-cnc-software
+          path: dist/belt-cnc-software
+          if-no-files-found: error
