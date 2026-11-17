@@ -118,7 +118,8 @@ def main():
 
     # ---- 2: belt trim does not change the reported position, and "$HX $HY" re-bases cleanly
     out = run(program, cfg, ["$Report/Interval=100", "$/kinematics/BeltCNC/sw_trim=-3.5", f"G90 G53 G1 X{home[0]} Y{home[1]} F600", "G4 P0.6",
-                             f"G1 X{home[0] + 100} Y{home[1]} F3000", "G4 P0.6", "$HX", "$HY", "G4 P0.4"])
+                             f"G1 X{home[0] + 100} Y{home[1]} F3000", "G4 P0.6", "$HX", "$HY",
+                             "G91 G1 X1 F600", "G90", "G4 P0.6"])   # the 1 mm nudge makes it report the new position
     print("=" * 30, "simulator output, run 2", "=" * 30); print(out[-4000:])
     rep = reports(out)
     check("error" not in out.lower().replace("no error", "") and "ALARM" not in out, "trim and centre commands are accepted")
@@ -126,7 +127,7 @@ def main():
         mid = min(math.hypot(r[1][0] - (home[0] + 100), r[1][1] - home[1]) for r in rep)
         check(mid < 0.1, f"moves correctly with a trim applied (closest report {mid:.3f} mm from target)")
         end = rep[-1][1]
-        check(math.hypot(end[0] - home[0], end[1] - home[1]) < 0.05, f"$HX $HY declare the centre {end[:2]}")
+        check(math.hypot(end[0] - home[0] - 1, end[1] - home[1]) < 0.05, f"$HX $HY declare the centre (1 mm nudge from it ends at {end[:2]})")
 
     # ---- 3: refuses to leave the table
     out = run(program, cfg, ["G90 G1 X-500 Y610 F3000", "G4 P0.3"])

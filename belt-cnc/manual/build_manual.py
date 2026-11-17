@@ -98,7 +98,7 @@ def cover():
         'clashes, and the control software has been compiled and run in a simulator, but expect to adjust things as you go. '
         '<b>Build and test one corner unit before printing all four.</b> The last page lists what has and has not been checked.</div></div>')
     add('<div class="facts"><div><b>Cuts</b>up to a 2440 x 1220mm sheet</div><div><b>Tools</b>router, pen, laser</div><div><b>Budget</b>about £260 plus a donor 3D printer</div>'
-        '<div><b>Time</b>a week of evenings to print, three days to build</div></div></div>')
+        '<div><b>Time</b>about 126 hours of printing, three days to build</div></div></div>')
 
 
 def how_to_read():
@@ -158,9 +158,11 @@ def printing():
     section("1. Print the parts", "Do this before you take the printer apart. All the files are in the `stl` folder, already turned the right way up. None need supports.")
     h2("Filament and settings")
     p("Use **plain PETG** for everything. It is strong and slightly flexible, so clamps and press fits do not crack, and it copes with a warm motor. "
-      "PLA is brittle and slowly deforms under a clamped load, so the router clamp would work loose. You need about **1.5kg**: buy 2kg, or 3kg to allow for reprints.")
+      "PLA is brittle and slowly deforms under a clamped load, so the router clamp would work loose. You need about **1.8kg** including spares: buy 3kg.")
     table([["Setting", "Value"], ["Nozzle / bed", "235 to 245°C / 75 to 80°C"], ["Layer height", "0.2mm with a 0.4mm nozzle"],
            ["Walls", "4 (5 for `corner_bracket` and `z_carriage`)"], ["Infill", "40% (50% for `corner_bracket` and `z_carriage`)"], ["Supports", "None"], ["Fan", "30 to 50%"]], [30, 70])
+    p("**The quick way:** the `print` folder has OrcaSlicer presets for your X1 and nine ready-made plates, every part already turned the right way up. "
+      "Import the presets, open each plate, pick the preset its name says, print. The full set takes **about 126 hours**. `print/README.md` has the list, times and order.")
     h2("What to print")
     table([["File", "Qty", "Notes"],
            ["`corner_bracket`", "4", "142 x 176mm. Top face on the bed, fence walls and plug panel pointing up."],

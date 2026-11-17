@@ -1,0 +1,97 @@
+{
+  "type": "machine",
+  "name": "Artillery X1 Klipper 0.4",
+  "from": "User",
+  "instantiation": "true",
+  "printer_technology": "FFF",
+  "gcode_flavor": "klipper",
+  "printable_area": [
+    "0x0",
+    "300x0",
+    "300x300",
+    "0x300"
+  ],
+  "printable_height": "400",
+  "nozzle_diameter": [
+    "0.4"
+  ],
+  "printer_variant": "0.4",
+  "max_layer_height": [
+    "0.32"
+  ],
+  "min_layer_height": [
+    "0.08"
+  ],
+  "retraction_length": [
+    "1"
+  ],
+  "retraction_speed": [
+    "40"
+  ],
+  "use_relative_e_distances": "1",
+  "machine_start_gcode": "M140 S[first_layer_bed_temperature]\nM104 S150\nG28\nM190 S[first_layer_bed_temperature]\nM109 S[nozzle_temperature_initial_layer]\nG90\nM83\nG92 E0\nG1 Z0.3 F1200\nG1 X5 Y10 F6000\nG1 X5 Y200 E20 F1500\nG1 X5.4 Y200 F1200\nG1 X5.4 Y10 E20 F1500\nG92 E0\nG1 Z2 F1200",
+  "machine_end_gcode": "G91\nG1 E-2 F1800\nG1 Z10 F1200\nG90\nG1 X10 Y290 F6000\nM104 S0\nM140 S0\nM107\nM84",
+  "default_filament_profile": [
+    "Generic PLA"
+  ],
+  "default_print_profile": "Artillery X1 0.20mm",
+  "machine_max_speed_x": [
+    "200",
+    "200"
+  ],
+  "machine_max_speed_y": [
+    "200",
+    "200"
+  ],
+  "machine_max_speed_z": [
+    "12",
+    "12"
+  ],
+  "machine_max_speed_e": [
+    "120",
+    "120"
+  ],
+  "machine_max_acceleration_x": [
+    "1000",
+    "1000"
+  ],
+  "machine_max_acceleration_y": [
+    "1000",
+    "1000"
+  ],
+  "machine_max_acceleration_z": [
+    "100",
+    "100"
+  ],
+  "machine_max_acceleration_e": [
+    "5000",
+    "5000"
+  ],
+  "machine_max_acceleration_extruding": [
+    "1250",
+    "1250"
+  ],
+  "machine_max_acceleration_retracting": [
+    "1250",
+    "1250"
+  ],
+  "machine_max_jerk_x": [
+    "8",
+    "8"
+  ],
+  "machine_max_jerk_y": [
+    "8",
+    "8"
+  ],
+  "machine_max_jerk_z": [
+    "0.4",
+    "0.4"
+  ],
+  "machine_max_jerk_e": [
+    "1.5",
+    "1.5"
+  ],
+  "z_hop": [
+    "0.4"
+  ]
+}

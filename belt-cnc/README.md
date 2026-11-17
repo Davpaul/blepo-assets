@@ -15,7 +15,8 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 | [BUILD.md](BUILD.md) | Step-by-step construction and setup |
 | [WIRING.md](WIRING.md) | Beginner's guide to the wiring, with diagrams. Network leads and screw terminals, almost no soldering |
 | [firmware/INSTALL.md](firmware/INSTALL.md) | Putting the software on the controller |
-| `stl/` | Printable parts, ready to slice |
+| `print/` | OrcaSlicer presets and nine ready-to-print plates, with times. Start with `print/README.md` |
+| `stl/` | Each printed part on its own |
 | `renders/` | Pictures of every part and the assemblies |
 
 ## Design in brief
