@@ -32,6 +32,8 @@ def sim_config(real_yaml):
     pins = {"x": (12, 13), "y": (14, 15), "z": (16, 17), "a": (4, 5), "b": (6, 7)}
     for name in "xyzab":
         homing = ""
+        if name == "z":      # FluidNC only accepts $HX/$HY when some axis has a real homing cycle
+            homing = "    homing:\n      cycle: 1\n      positive_direction: true\n      mpos_mm: 0\n"
         if name in "xy":
             homing = f"    homing:\n      cycle: -1\n      mpos_mm: {hx if name == 'x' else hy}\n"
         belt = name != "z"
@@ -51,7 +53,9 @@ def run(program, config_text, commands, timeout=75):
     args = [os.path.abspath(program)]
     if os.geteuid() != 0 and subprocess.run(["sudo", "-n", "true"], capture_output=True).returncode == 0:
         args = ["sudo", "-n"] + args          # the simulator opens network ports 80 and 23, which needs root
-    for c in commands:
+    # the simulator quits as soon as it has read its last command, so finish with
+    # harmless padding: everything that matters has completed by the time it is read
+    for c in list(commands) + ["G4 P0.3", "$I"]:
         args += ["-c", c]
     log = os.path.join(work, "output.txt")
     master, slave = pty.openpty()
