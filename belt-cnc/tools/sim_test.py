@@ -41,15 +41,27 @@ def sim_config(real_yaml):
     return out, (hx, hy)
 
 
-def run(program, config_text, commands, timeout=300):
+def run(program, config_text, commands, timeout=75):
+    """Start the simulator with a list of commands and collect what it prints.
+    It is given a pretend terminal, and stopped after `timeout` seconds if it has not finished."""
+    import pty, signal, time
     work = tempfile.mkdtemp(prefix="beltsim_")
     os.makedirs(os.path.join(work, "native_localfs")); os.makedirs(os.path.join(work, "native_sd"))
     open(os.path.join(work, "native_localfs", "config.yaml"), "w").write(config_text)
     args = [os.path.abspath(program)]
     for c in commands:
         args += ["-c", c]
-    p = subprocess.run(args, cwd=work, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout)
-    return p.stdout.decode(errors="replace")
+    log = os.path.join(work, "output.txt")
+    master, slave = pty.openpty()
+    with open(log, "wb") as fh:
+        p = subprocess.Popen(args, cwd=work, stdin=slave, stdout=fh, stderr=subprocess.STDOUT)
+        try:
+            p.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            p.send_signal(signal.SIGKILL); p.wait()
+            print(f"(simulator stopped after {timeout} s)")
+    os.close(master); os.close(slave)
+    return open(log, "rb").read().decode(errors="replace")
 
 
 def reports(output):
@@ -80,7 +92,7 @@ def main():
     # ---- 1: boots, loads the module, moves in a straight line and comes back
     out = run(program, cfg, ["$Report/Interval=100", f"G90 G21 G1 X{target[0]} Y{target[1]} F3000", "G4 P0.6",
                              f"G1 X{home[0]} Y{home[1]} F3000", "G4 P0.6", "G1 Z-5 F300", "G4 P0.6"])
-    print("=" * 30, "simulator output, run 1", "=" * 30); print(out[-6000:])
+    print("=" * 30, "simulator output, run 1", "=" * 30); print(out[:3500]); print("   ...   "); print(out[-3500:])
     check("Kinematic system: BeltCNC" in out, "firmware starts with the BeltCNC module")
     check("error" not in out.lower().replace("no error", "") and "ALARM" not in out, "no errors or alarms")
     rep = reports(out)

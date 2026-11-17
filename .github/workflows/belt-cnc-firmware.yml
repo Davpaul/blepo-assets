@@ -70,14 +70,14 @@ jobs:
         working-directory: fluidnc
         run: pio run -e linux_x86_64
 
-      - name: Run the firmware in the simulator
-        run: python belt-cnc/tools/sim_test.py fluidnc/.pio/build/linux_x86_64/program belt-cnc/firmware/belt-cnc.yaml
-
       - name: Build ESP32 firmware
         working-directory: fluidnc
         run: |
           pio run -e wifi
           pio run -e wifi -t buildfs
+
+      - name: Run the firmware in the simulator
+        run: python belt-cnc/tools/sim_test.py fluidnc/.pio/build/linux_x86_64/program belt-cnc/firmware/belt-cnc.yaml
 
       - name: Package
         run: python belt-cnc/tools/ci_package.py fluidnc belt-cnc dist
