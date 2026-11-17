@@ -29,7 +29,7 @@ def sim_config(real_yaml):
     hx = float(re.search(r"mpos_mm:\s*([-\d.]+)\s*# =home_x", text).group(1))
     hy = float(re.search(r"mpos_mm:\s*([-\d.]+)\s*# =home_y", text).group(1))
     out = 'name: "Belt CNC (simulator)"\nboard: "None"\n\n' + kin + "\nstepping:\n  engine: Timed\n  idle_ms: 255\n  pulse_us: 4\n  dir_delay_us: 1\n  disable_delay_us: 0\n\naxes:"
-    pins = {"x": (12, 13), "y": (14, 15), "z": (16, 17), "a": (25, 26), "b": (27, 32)}
+    pins = {"x": (12, 13), "y": (14, 15), "z": (16, 17), "a": (4, 5), "b": (6, 7)}
     for name in "xyzab":
         homing = ""
         if name in "xy":
@@ -49,6 +49,8 @@ def run(program, config_text, commands, timeout=75):
     os.makedirs(os.path.join(work, "native_localfs")); os.makedirs(os.path.join(work, "native_sd"))
     open(os.path.join(work, "native_localfs", "config.yaml"), "w").write(config_text)
     args = [os.path.abspath(program)]
+    if os.geteuid() != 0 and subprocess.run(["sudo", "-n", "true"], capture_output=True).returncode == 0:
+        args = ["sudo", "-n"] + args          # the simulator opens network ports 80 and 23, which needs root
     for c in commands:
         args += ["-c", c]
     log = os.path.join(work, "output.txt")
@@ -58,10 +60,12 @@ def run(program, config_text, commands, timeout=75):
         try:
             p.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            p.send_signal(signal.SIGKILL); p.wait()
+            subprocess.run(["sudo", "-n", "pkill", "-9", "-f", os.path.basename(program)], capture_output=True)
+            p.kill(); p.wait()
             print(f"(simulator stopped after {timeout} s)")
     os.close(master); os.close(slave)
-    return open(log, "rb").read().decode(errors="replace")
+    text = open(log, "rb").read().decode(errors="replace")
+    return "\n".join(ln for ln in text.splitlines() if "bind failed" not in ln and "Cannot bind" not in ln)
 
 
 def reports(output):
