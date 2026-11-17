@@ -10,7 +10,7 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 
 | File | What it is |
 |---|---|
-| [belt-cnc-build-guide.pdf](belt-cnc-build-guide.pdf) | The printable step-by-step guide, with life-size drawings of every fastener. Print at 100%. |
+| [belt-cnc-build-guide.pdf](belt-cnc-build-guide.pdf) | The illustrated step-by-step manual: an exploded picture for every step, life-size drawings of every fastener, tips throughout. Print at 100%. |
 | [PARTS.md](PARTS.md) | What to salvage from the Artillery X1, what to buy, what to print |
 | [BUILD.md](BUILD.md) | Step-by-step construction and setup |
 | [WIRING.md](WIRING.md) | Beginner's guide to the wiring, with diagrams. Network leads and screw terminals, almost no soldering |
@@ -29,6 +29,8 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 
 ## Software
 
+A GitHub workflow (`.github/workflows/belt-cnc-firmware.yml`) builds the firmware on every change, runs it in a simulator, and publishes a ready-to-flash download called **belt-cnc-software** under the repo's Actions tab.
+
 | Script | Use |
 |---|---|
 | `tools/table_config.py` | Five measurements in, controller settings out |
@@ -36,7 +38,11 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 | `tools/simulate.py` | Map where on a given table the machine can hold the router |
 | `tools/make_test_pattern.py`, `tools/calibrate.py` | Mark test dots, then correct scale from measurements of them |
 | `tools/beltkin.py` | The belt geometry model the others share |
-| `tools/make_pdf.py` | Rebuild the PDF guide (needs `reportlab` and `pillow`) |
+| `tools/beltcnc.py` | One front door for all the tools below: `table`, `upload`, `setup`, `reach`, `dots`, `calibrate`, `test` |
+| `tools/upload_config.py` | Send the settings file to the controller over USB |
+| `tools/test_tools.py` | Self-test for the tools, no machine needed |
+| `tools/sim_test.py` | Runs the firmware in FluidNC's simulator (used by the automated build) |
+| `manual/build.sh` | Rebuild the manual's pictures and PDF |
 | `cad/build.py` | Regenerate every STL from `cad/parts.py` and `cad/geometry.py` |
 
 The scripts need Python 3 with `numpy` (and `matplotlib`, `manifold3d` for the CAD and diagrams, `pyserial` for USB).

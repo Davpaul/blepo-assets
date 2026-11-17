@@ -420,7 +420,7 @@ def table_scenes():
               label="five breakout boards,\none behind each notch" if i == 0 else None, lab=(-110, -70))
     s.add(P.electronics_lid().translate((0, 0, 40)), "new2", explode=(0, 0, 105), label="lid, 4 x M3 x 12", lab=(110, -30))
     for i, n in enumerate(("X=SW", "Y=SE", "E0=NE", "E1=NW", "Z=SLED")):
-        s.label(n, (30 + i * 40, -4, 30), -10 + i * 4, 110 + (i % 2) * 36, size=21)
+        s.label(n, (30 + i * 40, -4, 30), -10 + i * 4, 110 + (i % 2) * 52, size=30)
 
 
 def main():

@@ -94,7 +94,15 @@ Put the tray at the middle of the south edge. Hang the sled lead, router flex an
 
 ## 6. Firmware
 
-Follow `firmware/INSTALL.md`. In short: build FluidNC with the three files from `firmware/` added, flash it, and upload `belt-cnc.yaml`.
+You do not need to compile anything. On GitHub, open the repo's **Actions** tab, pick the latest green **Belt CNC firmware** run, and download the **belt-cnc-software** artifact. It contains the built firmware, `flash.sh` / `flash.bat` to put it on the board, the settings file and the tools. Then:
+
+```
+python3 tools/beltcnc.py test                          # 22 self-checks, no machine needed
+./flash.sh /dev/tty.usbserial-XXXX                     # Windows: flash.bat COM5
+python3 tools/beltcnc.py upload --port PORT belt-cnc.yaml
+```
+
+`firmware/INSTALL.md` covers building it yourself instead.
 
 ## 7. Set up the table
 
@@ -123,7 +131,7 @@ In either setup the sled needs support under at least half its base. Along an un
 
 To check any other size before committing: `python3 tools/simulate.py --width 1200 --height 800`.
 
-**Fitting a unit:** push the two fence walls hard against both edges of the corner. For a board you will reuse, mark the three holes, drill 8mm, hammer **M6 T-nuts** in from underneath, and hold the unit down with M6 bolts and wing nuts so it comes off in seconds. For a one-off sheet, three wood screws with washers do the job.
+**Fitting a unit:** push the two fence walls hard against both edges of the corner. For a board you will reuse, mark the three holes, drill 8mm, and hammer **M6 T-nuts** in from underneath. Screw an M6 x 40 bolt up through each T-nut from below so it sticks up as a stud. Drop the unit over the studs and hold it with penny washers and wing nuts, so it comes off in seconds. For a one-off sheet, three wood screws with washers do the job.
 
 **Measuring:**
 

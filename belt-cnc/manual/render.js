@@ -94,8 +94,8 @@ window.renderScene = function(sc){
   const out=[];
   for(const l of sc.labels||[]){
     const p=proj(l.at);const tx=p[0]+l.dx*S,ty=p[1]+l.dy*S;
-    c.font=(l.bold?'600 ':'')+Math.round((l.size||25)*S)+'px Helvetica, Arial, sans-serif';
-    const lines=l.text.split('\\n');const lh=(l.size||25)*S*1.22;
+    c.font=(l.bold?'600 ':'')+Math.round((l.size||36)*S)+'px Helvetica, Arial, sans-serif';
+    const lines=l.text.split('\\n');const lh=(l.size||36)*S*1.22;
     let tw=0;for(const s of lines)tw=Math.max(tw,c.measureText(s).width);
     const bw=tw+18*S,bh=lh*lines.length+10*S;
     let bx=tx-(l.dx<0?bw:0),by=ty-bh/2;

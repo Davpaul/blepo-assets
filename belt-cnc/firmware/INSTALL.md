@@ -11,7 +11,11 @@ The controller runs [FluidNC](https://github.com/bdring/FluidNC), an open-source
 | `belt-cnc.yaml` | FluidNC config for the MKS TinyBee board |
 | `test/` | A PC test that checks the maths against the Python model |
 
-## Build and flash
+## The easy way
+
+Download the **belt-cnc-software** artifact from the latest green **Belt CNC firmware** run under the repo's Actions tab. Run `flash.sh <port>` (Mac, Linux) or `flash.bat COMx` (Windows), then `python3 tools/beltcnc.py upload --port <port> belt-cnc.yaml`.
+
+## Building it yourself
 
 1. Install [VS Code](https://code.visualstudio.com/) and its **PlatformIO** extension.
 2. Download the FluidNC source: `git clone https://github.com/bdring/FluidNC.git`
@@ -49,7 +53,7 @@ g++ -std=c++17 -O2 -I firmware firmware/test/host_test.cpp -o belt_test && ./bel
 
 ## Status
 
-The module passes a syntax check against the FluidNC source as of November 2026 and its maths is tested, but it has not been through a full build or run on a board. FluidNC's internals change between releases. If the build fails, the first place to look is the list of functions in `FluidNC/src/Kinematics/Kinematics.h`, which this module overrides.
+The automated build compiles this module into FluidNC for the ESP32 and for FluidNC's PC simulator, and runs the simulator against the real config. It has not been run on a physical board. FluidNC's internals change between releases, so the build is pinned to one FluidNC commit (see the workflow file). To move to a newer FluidNC, change that commit and see whether the build stays green.
 
 ## Licence
 
