@@ -49,8 +49,12 @@ SNAP = os.path.join(STATE_DIR, "resume-state.json")
 
 POLL = float(os.environ.get("KD_POLL", "2"))
 MAX_ATTEMPTS = 3           # auto-resumes per print
-MAX_OUTAGE = 15 * 60       # give up if the printer is gone longer than this
+MAX_OUTAGE = float(os.environ.get("KD_MAX_OUTAGE", 5 * 60))   # bed is cooling: don't wait forever
+STEP_WAIT = float(os.environ.get("KD_STEP_WAIT", "8"))        # wait between USB recovery steps
 EXTRA_BACKUP = 1.0         # seconds re-printed on top of Klipper's buffer, to avoid a gap
+TOPO = os.path.join(STATE_DIR, "usb-topology.json")
+USB_RESET = shlex.split(os.environ.get("KD_USB_RESET", "sudo -n /etc/klipper-deck/usb-reset"))
+SYS_TTY = os.environ.get("KD_SYS_TTY", "/sys/class/tty")
 
 COMMS_LOSS = re.compile(
     r"Got EOF when reading from device|in write: \(19\)|No such device|"
@@ -78,6 +82,83 @@ def find_printer():
             if os.path.exists(d):
                 return os.path.realpath(d)
     return None
+
+
+def usb_topology(dev):
+    """From /dev/ttyUSB0 work out the printer's USB device, the hub it hangs off
+    (normally the dock) and the USB controller. Returns a dict or None."""
+    try:
+        p = os.path.realpath(os.path.join(SYS_TTY, os.path.basename(dev), "device"))
+    except OSError:
+        return None
+    parts = p.split("/")
+    usb = [x for x in parts if re.fullmatch(r"\d+-[\d.]+", x)]
+    pci = [x for x in parts if re.fullmatch(r"[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-7]", x)]
+    if not usb:
+        return None
+    printer = usb[-1]
+    hub = usb[-2] if len(usb) > 1 else None
+    return {"printer": printer, "hub": hub, "controller": pci[-1] if pci else None}
+
+
+def remember_topology(dev):
+    t = usb_topology(dev)
+    if t:
+        with open(TOPO, "w") as f:
+            json.dump(t, f)
+    return t
+
+
+def load_topology():
+    try:
+        with open(TOPO) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def usb_reset(kind, target):
+    """kind: 'hub' (like unplugging the dock) or 'controller' (all USB ports)."""
+    if not target:
+        return False
+    say("Resetting USB %s %s (like unplugging and replugging it)..." % (kind, target))
+    r = subprocess.run(USB_RESET + [kind, target], stdout=subprocess.PIPE,
+                       stderr=subprocess.STDOUT, text=True)
+    if r.returncode != 0:
+        say("USB reset didn't work: %s" % (r.stdout.strip() or r.returncode))
+        return False
+    return True
+
+
+def wait_for_printer(seconds):
+    end = time.time() + seconds
+    while time.time() < end:
+        dev = find_printer()
+        if dev:
+            return dev
+        time.sleep(1)
+    return None
+
+
+def bring_printer_back(deadline):
+    """Wait for the printer's USB; if it doesn't come back, reset the dock/hub,
+    then the whole USB controller. Returns the device path or None."""
+    topo = load_topology() or {}
+    steps = [("wait", None)]
+    if topo.get("hub"):
+        steps.append(("hub", topo["hub"]))
+    if topo.get("controller"):
+        steps.append(("controller", topo["controller"]))
+    for kind, target in steps:
+        if kind != "wait":
+            usb_reset(kind, target)
+        dev = wait_for_printer(min(STEP_WAIT if kind == "wait" else STEP_WAIT * 2,
+                                   max(0, deadline - time.time())))
+        if dev:
+            return dev
+    # Last resort: keep waiting until the deadline (someone may replug it)
+    say("Still no printer. Unplug and replug the dock or printer USB if you're there.")
+    return wait_for_printer(max(0, deadline - time.time()))
 
 
 def api(path, method="GET", timeout=5):
@@ -337,29 +418,31 @@ def build_resume(gcode_path, sd_pos, back_seconds, snap=None):
     add("; ---- AUTO-RESUME (klipper-deck) ----")
     add("; original: %s  resumed at byte %d (last read %d, backed up %.2fs)"
         % (os.path.basename(gcode_path), resume_off, sd_pos, t))
-    add("RESPOND MSG=\"Auto-resume: reheating and re-homing X/Y\"")
+    add("RESPOND MSG=\"Auto-resume: reheating before anything moves\"")
     pre.extend(defines)
     if total_layer:
         add(total_layer)
     if rs.layer:
         add(rs.layer)
+    # Nothing moves until the nozzle is fully hot: a cold nozzle is stuck in the
+    # plastic and lifting it would rip the print.
     add("M140 S%.0f" % bed)
-    add("M104 S%.0f" % min(hot, 170))           # warm, but below oozing temperature
+    add("M104 S%.0f" % min(hot, 140))           # warm while the bed heats, without oozing much
     add("SET_KINEMATIC_POSITION X=0 Y=0 Z=%.3f SET_HOMED=Z" % zphys)
+    if bed:
+        add("M190 S%.0f" % bed)
+    add("M109 S%.0f" % hot)                      # fully melted before any movement
+    add("M83")
+    add("G1 E-1.5 F1800")                        # pull back the ooze straight away
     add("G91")
-    add("G1 Z5 F600")                            # lift off the print before anything moves
+    add("G1 Z5 F600")                            # now lift clear of the print
     add("G90")
     add("G28 X Y")
     add("SET_GCODE_OFFSET X=%.3f Y=%.3f Z=%.3f" % (origin[0], origin[1], zoff))
-    if bed:
-        add("M190 S%.0f" % bed)
-    add("M109 S%.0f" % hot)
-    add("M83")
-    add("G1 E-1.0 F1800")                        # pull back the ooze from heating
     add("G90")
     add("G1 X%.3f Y%.3f F6000" % (rs.pos["X"], rs.pos["Y"]))
     add("G1 Z%.3f F600" % rs.pos["Z"])
-    add("G1 E1.0 F1800")
+    add("G1 E1.5 F1800")
     if rs.fan is not None:
         add("M106 S%.0f" % rs.fan)
     elif snap.get("fan"):
@@ -442,21 +525,31 @@ def recover(snap, failure_text, start):
     if snap.get("attempts", 0) >= MAX_ATTEMPTS:
         say("Already auto-resumed %d times for this print; not trying again." % MAX_ATTEMPTS)
         return
-    say("Waiting for the printer's USB to come back...")
-    t0 = time.time()
-    dev = None
-    time.sleep(3)
-    while time.time() - t0 < MAX_OUTAGE:
-        dev = find_printer()
-        if dev:
+    say("Waiting for the printer's USB to come back (heaters are off, so speed matters)...")
+    deadline = time.time() + MAX_OUTAGE
+    time.sleep(2)
+    ready = False
+    for attempt in range(3):
+        dev = bring_printer_back(deadline)
+        if not dev:
+            say("Printer didn't come back within %d minutes. Giving up; "
+                "you can still try 'klipper-deck resume'." % (MAX_OUTAGE // 60))
+            return
+        remember_topology(dev)
+        say("Printer is back on %s. Restarting Klipper..." % dev)
+        start_container(dev)
+        if wait_ready(timeout=60):
+            ready = True
             break
-        time.sleep(2)
-    if not dev:
-        say("Printer didn't come back within %d minutes. Giving up." % (MAX_OUTAGE // 60))
-        return
-    say("Printer is back on %s. Restarting Klipper..." % dev)
-    start_container(dev)
-    if not wait_ready():
+        # Printer is visible but Klipper can't talk to it: same as having to
+        # unplug the dock by hand. Reset the hub and try again.
+        say("Klipper couldn't connect. Resetting the dock's USB and trying again...")
+        topo = load_topology() or {}
+        usb_reset("hub", topo.get("hub")) or usb_reset("controller", topo.get("controller"))
+        time.sleep(3)
+        if time.time() > deadline:
+            break
+    if not ready:
         say("Klipper didn't get ready. Check Mainsail; you can try 'klipper-deck resume'.")
         return
     try:
@@ -484,6 +577,9 @@ def run():
     if stop["flag"]:
         return
     say("Printer found on %s. Starting Klipper..." % dev)
+    topo = remember_topology(dev)
+    if topo:
+        say("USB: printer %s on hub %s, controller %s" % (topo["printer"], topo["hub"], topo["controller"]))
     start_container(dev)
     say("Auto-resume after USB dropouts is %s." % ("ON" if auto_enabled() else "OFF"))
     log_pos = log_size()
@@ -538,6 +634,18 @@ def main():
         text = read_log_from(0)
         i = text.rfind("Starting SD card print")
         do_resume(snap, text[i:] if i >= 0 else text, ask=True)
+    elif cmd == "usbreset":
+        topo = load_topology()
+        if not topo:
+            print("Don't know the printer's USB layout yet. Start Klipper once with the printer plugged in.")
+            sys.exit(1)
+        ok = usb_reset("hub", topo.get("hub"))
+        dev = wait_for_printer(STEP_WAIT * 2)
+        if not dev and topo.get("controller"):
+            usb_reset("controller", topo["controller"])
+            dev = wait_for_printer(STEP_WAIT * 2)
+        print("Printer is back on %s. In Mainsail press FIRMWARE RESTART." % dev if dev
+              else "Printer still not showing up. Check the cable and that it's switched on.")
     elif cmd == "make-resume":
         g, sd, bt, out = sys.argv[2], int(sys.argv[3]), float(sys.argv[4]), sys.argv[5]
         data, off, rs = build_resume(g, sd, bt + EXTRA_BACKUP)

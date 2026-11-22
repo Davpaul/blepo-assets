@@ -10,6 +10,7 @@
 #   klipper-deck shell    open a shell inside the container (for tinkering)
 #   klipper-deck resume   resume the last print by hand (after a crash or reboot)
 #   klipper-deck autoresume on|off   auto-resume after USB dropouts (default on)
+#   klipper-deck usbreset software unplug/replug of the dock, instead of doing it by hand
 
 IMAGE=localhost/klipper-deck
 NAME=klipper-deck
@@ -158,5 +159,6 @@ case "${1:-}" in
     shell)  cmd_shell ;;
     resume) cmd_resume ;;
     autoresume) cmd_autoresume "${2:-}" ;;
-    *) sed -n 2,14p "$0" | sed 's/^# \{0,1\}//' ;;
+    usbreset) python3 "$LIB/guard.py" usbreset ;;
+    *) sed -n 2,15p "$0" | sed 's/^# \{0,1\}//' ;;
 esac

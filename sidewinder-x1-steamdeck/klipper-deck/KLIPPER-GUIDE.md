@@ -124,17 +124,24 @@ Uploaded files live on the Deck in `~/klipper-deck/printer_data/gcodes`.
 If the printer's USB connection drops mid-print, `klipper-deck start` deals with it by itself:
 
 1. Spots the dropout in Klipper's log within a couple of seconds.
-2. Waits (up to 15 min) for the printer's USB to come back.
-3. Restarts Klipper on the new connection.
+2. Gets the printer back fast, because the heaters are off and the bed is cooling:
+   - waits about 8 seconds for it to reappear by itself
+   - if not, switches the dock's USB off and on in software (same as unplugging and replugging the dock)
+   - if still not, resets the Deck's whole USB controller
+   - gives up after 5 minutes
+3. Restarts Klipper on the new connection. If Klipper can't talk to the printer, it resets the dock again and retries.
 4. Works out the exact point the printer had reached, backing up about a second so there's no gap.
-5. Builds a `RESUME1-yourfile.gcode` and starts it. That file lifts the nozzle 5mm, homes X and Y only (Z is never homed, so it can't crash into the print), reheats, moves back to the spot and carries on.
+5. Builds a `RESUME1-yourfile.gcode` and starts it. That file:
+   - reheats the bed, then the nozzle to full temperature, **before anything moves**, so a cold nozzle can't rip the print
+   - retracts a little, lifts the nozzle 5mm and homes X and Y only. Z is never homed, so it can't crash into the print
+   - moves back to the spot and carries on
 
 You'll see "Print auto-resumed after a USB dropout" in Mainsail's console.
 
 **When it won't resume:**
 - The print was cancelled, finished, or stopped for a heater or safety error.
 - The same print has already been resumed 3 times.
-- The printer was gone for more than 15 minutes.
+- The printer was gone for more than 5 minutes.
 
 **Before trusting it:** while the motors were off, the gantry may have slipped down a little. If the nozzle is resting on the print when you check, stop it and don't resume.
 
@@ -144,6 +151,7 @@ You'll see "Print auto-resumed after a USB dropout" in Mainsail's console.
 |---|---|
 | Resume by hand (e.g. after the Deck crashed or rebooted) | Start Klipper, then `klipper-deck resume`. It asks before starting |
 | Turn auto-resume off / on | `klipper-deck autoresume off` / `on` |
+| Dock stuck, printer won't reconnect (instead of unplugging the dock) | `klipper-deck usbreset`, then **FIRMWARE RESTART** in Mainsail |
 
 **Updating to get this** (if you installed before it existed):
 ```bash

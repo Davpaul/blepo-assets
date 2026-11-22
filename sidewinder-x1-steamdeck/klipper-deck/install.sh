@@ -42,6 +42,15 @@ echo 'ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control
     | sudo tee /etc/udev/rules.d/99-usb-no-autosuspend.rules >/dev/null
 echo -1 | sudo tee /sys/module/usbcore/parameters/autosuspend >/dev/null
 for c in /sys/bus/usb/devices/*/power/control; do echo on | sudo tee "$c" >/dev/null 2>&1 || true; done
+# Software "unplug and replug the dock", used by auto-resume. Root-owned, and the
+# only thing allowed to run without a password.
+sudo install -d -m 755 /etc/klipper-deck
+sudo install -m 755 -o root -g root "$KIT/usb-reset" /etc/klipper-deck/usb-reset
+echo "$U ALL=(root) NOPASSWD: /etc/klipper-deck/usb-reset" > /tmp/klipper-deck-sudoers
+if sudo visudo -cf /tmp/klipper-deck-sudoers >/dev/null; then
+    sudo install -m 440 -o root -g root /tmp/klipper-deck-sudoers /etc/sudoers.d/klipper-deck
+fi
+rm -f /tmp/klipper-deck-sudoers
 # SteamOS can have firewalld running, which blocks other devices from reaching the web page
 if command -v firewall-cmd >/dev/null && sudo firewall-cmd --state >/dev/null 2>&1; then
     sudo firewall-cmd -q --permanent --add-service=http

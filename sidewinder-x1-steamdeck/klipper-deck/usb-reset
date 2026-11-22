@@ -1,0 +1,37 @@
+#!/bin/bash
+# usb-reset - software "unplug and replug" for the printer's USB path.
+# Installed by install.sh to /etc/klipper-deck/usb-reset (owned by root) and
+# allowed to run without a password ONLY for this script.
+#
+#   usb-reset hub 1-1              power-cycle one USB hub/device (e.g. the dock)
+#   usb-reset controller 0000:04:00.3   reset a whole USB controller (all ports on it)
+set -eu
+SYS="${USB_RESET_SYS:-/sys}"
+kind="${1:-}"; target="${2:-}"
+
+case "$kind" in
+    hub)
+        [[ "$target" =~ ^[0-9]+-[0-9]+(\.[0-9]+)*$ ]] || { echo "bad USB device name"; exit 2; }
+        f="$SYS/bus/usb/devices/$target/authorized"
+        [ -e "$f" ] || { echo "no such USB device: $target"; exit 3; }
+        echo 0 > "$f"
+        sleep 2
+        echo 1 > "$f"
+        ;;
+    controller)
+        [[ "$target" =~ ^[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-7]$ ]] || { echo "bad PCI address"; exit 2; }
+        drv="$SYS/bus/pci/devices/$target/driver"
+        [ -e "$drv" ] || { echo "no driver bound to $target"; exit 3; }
+        drvdir="$(readlink -f "$drv")"
+        case "$(basename "$drvdir")" in
+            xhci_hcd|xhci-pci|ehci-pci) ;;
+            *) echo "not a USB controller"; exit 4 ;;
+        esac
+        echo "$target" > "$drvdir/unbind"
+        sleep 2
+        echo "$target" > "$drvdir/bind"
+        ;;
+    *)
+        echo "usage: usb-reset hub <1-1> | controller <0000:04:00.3>"; exit 1 ;;
+esac
+echo "ok"
