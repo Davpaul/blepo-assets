@@ -6,7 +6,6 @@
 set -e
 KIT="$(cd "$(dirname "$0")" && pwd)"
 CFG="$HOME/klipper-deck/printer_data/config/printer.cfg"
-[ -f "$CFG" ] || { echo "No printer.cfg yet (start Klipper once first). Skipping."; exit 0; }
 
 add() {   # add <addon file> <text that shows it's already there>
     local addon="$1" marker="$2"
@@ -26,7 +25,18 @@ add() {   # add <addon file> <text that shows it's already there>
     sleep 1
 }
 
-echo "Updating $CFG"
-add "$KIT/filament-addon.cfg" "gcode_macro LOAD_FILAMENT"
-add "$KIT/resume-addon.cfg" "[force_move]"
+if [ -f "$CFG" ]; then
+    echo "Updating $CFG"
+    add "$KIT/filament-addon.cfg" "gcode_macro LOAD_FILAMENT"
+    add "$KIT/resume-addon.cfg" "[force_move]"
+else
+    echo "No printer.cfg yet (start Klipper once first); skipping printer settings."
+fi
+# Moonraker: accept your Tailscale devices (phone/laptop away from home)
+MR="$HOME/klipper-deck/printer_data/config/moonraker.conf"
+if [ -f "$MR" ] && ! grep -q "100.64.0.0/10" "$MR"; then
+    cp "$MR" "$MR.bak-$(date +%Y%m%d-%H%M%S)"
+    sed -i 's#^\(\s*\)192.168.0.0/16\s*$#&\n\1100.64.0.0/10#' "$MR"
+    echo "  moonraker.conf: allowed Tailscale devices (100.64.0.0/10)"
+fi
 echo "Done. If Klipper is running, type FIRMWARE_RESTART in Mainsail's console."

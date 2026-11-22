@@ -166,6 +166,42 @@ Restart Klipper afterwards.
 
 **Fix the cause too.** Auto-resume is a safety net. Dropouts usually come from the dock or hub: plug the printer straight into the Deck's own USB-C port if you can.
 
+## Phone alerts and remote control
+
+### Phone alerts (5 min)
+
+You get an alert when a print starts, pauses, finishes, fails, or hits a USB dropout. Alerts have buttons:
+
+| Alert | Buttons |
+|---|---|
+| Print started / resumed | Pause · Cancel · Open Mainsail |
+| Print paused (e.g. filament ran out) | Resume · Cancel · Open Mainsail |
+| USB dropout: recovering → Print resumed | Pause · Cancel · Open Mainsail |
+| Print finished / failed / lost (needs you) | Open Mainsail |
+
+Setup:
+1. On the Deck: `klipper-deck notify setup`. It prints a topic name like `klipperdeck-3f9a1c2b7e4d` and sends a test alert.
+2. On your phone, install the **ntfy** app (free, no account needed). Tap **+** and subscribe to that topic name.
+3. Restart Klipper.
+
+Other commands: `klipper-deck notify test`, `klipper-deck notify off`.
+
+Alerts go through the free public ntfy.sh server. Anyone who knew your topic name could read them (file names and status only). That's why the name is random: keep it to yourself.
+
+### Control from anywhere: Tailscale (10 min)
+
+Without this, Mainsail and the alert buttons only work on your home Wi-Fi. Tailscale is a free private network between your own devices. Nothing gets opened to the public internet.
+
+1. On the Deck, from the kit folder:
+   ```bash
+   bash remote-access.sh
+   ```
+   It installs Tailscale using Tailscale's own Steam Deck installer, which survives SteamOS updates and starts on boot. Then it shows a QR code: scan it with your phone and sign in.
+2. On your phone, install the **Tailscale** app, sign in with the same account and switch it on.
+3. Restart Klipper.
+
+Mainsail is now at `http://100.x.x.x` (the script prints the address) from anywhere: work, 4G, someone else's Wi-Fi. The alert buttons switch to that address automatically. In OrcaSlicer on the Mac you can also use that address to upload prints when you're away.
+
 ## Day-to-day
 
 | Do this | Command |

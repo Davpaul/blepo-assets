@@ -161,6 +161,121 @@ def bring_printer_back(deadline):
     return wait_for_printer(max(0, deadline - time.time()))
 
 
+# ---------------------------------------------------------------- phone alerts (ntfy)
+
+NOTIFY = os.path.join(CONF_DIR, "notify.json")
+
+
+def notify_conf():
+    try:
+        with open(NOTIFY) as f:
+            c = json.load(f)
+        return c if c.get("topic") and c.get("enabled", True) else None
+    except (OSError, ValueError):
+        return None
+
+
+def notify(title, message, priority=3, tags=None, buttons=("open",)):
+    """Send a phone alert through ntfy. Buttons: open, pause, resume, cancel (max 3)."""
+    c = notify_conf()
+    if not c:
+        return False
+    base = c.get("url", "").rstrip("/")
+    acts = []
+    for b in buttons[:3]:
+        if not base:
+            break
+        if b == "open":
+            acts.append({"action": "view", "label": "Open Mainsail", "url": base, "clear": False})
+        else:
+            acts.append({"action": "http", "label": b.capitalize(), "method": "POST",
+                         "url": "%s/printer/print/%s" % (base, b), "clear": True})
+    body = {"topic": c["topic"], "title": title, "message": message,
+            "priority": priority, "tags": list(tags or []), "actions": acts}
+    if base:
+        body["click"] = base
+    try:
+        req = urllib.request.Request(c.get("server", "https://ntfy.sh").rstrip("/"),
+                                     data=json.dumps(body).encode(), method="POST",
+                                     headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=8).read()
+        return True
+    except Exception as e:
+        say("Phone alert failed: %s" % e)
+        return False
+
+
+def tailscale_ip():
+    for exe in ("tailscale", "/opt/tailscale/tailscale"):
+        try:
+            r = subprocess.run([exe, "ip", "-4"], capture_output=True, text=True, timeout=5)
+            ip = r.stdout.strip().splitlines()[0] if r.returncode == 0 and r.stdout.strip() else ""
+            if ip:
+                return ip
+        except (OSError, subprocess.SubprocessError, IndexError):
+            pass
+    return None
+
+
+def lan_ip():
+    try:
+        r = subprocess.run(["ip", "-4", "route", "get", "1.1.1.1"], capture_output=True, text=True)
+        m = re.search(r"src (\S+)", r.stdout)
+        return m.group(1) if m else None
+    except OSError:
+        return None
+
+
+def deck_url():
+    ip = tailscale_ip() or lan_ip() or "steamdeck.local"
+    return "http://%s%s" % (ip, "" if HTTP_PORT == "80" else ":" + HTTP_PORT)
+
+
+def notify_cmd(args):
+    import secrets
+    sub = args[0] if args else "status"
+    os.makedirs(CONF_DIR, exist_ok=True)
+    c = {}
+    try:
+        with open(NOTIFY) as f:
+            c = json.load(f)
+    except (OSError, ValueError):
+        pass
+    if sub == "setup":
+        c.setdefault("topic", "klipperdeck-" + secrets.token_hex(6))
+        c.setdefault("server", "https://ntfy.sh")
+        c["url"] = deck_url()
+        c["enabled"] = True
+        with open(NOTIFY, "w") as f:
+            json.dump(c, f, indent=1)
+        print("Phone alerts are set up.")
+        print()
+        print("  1. Install the 'ntfy' app on your phone (App Store / Play Store).")
+        print("  2. In the app tap + and subscribe to this topic:")
+        print()
+        print("        %s" % c["topic"])
+        print()
+        print("  Buttons in alerts will open/control: %s" % c["url"])
+        if not tailscale_ip():
+            print("  (That's your home network address, so buttons only work at home.")
+            print("   Run remote-access.sh to make them work from anywhere.)")
+        print()
+        print("Sending a test alert now...")
+        notify("Klipper on the Deck", "Test alert. If you can see this, alerts work.",
+               tags=["printer"], buttons=("open",))
+    elif sub == "test":
+        print("Sent." if notify("Klipper on the Deck", "Test alert.", tags=["printer"])
+              else "Not set up yet: run  klipper-deck notify setup")
+    elif sub == "off":
+        c["enabled"] = False
+        with open(NOTIFY, "w") as f:
+            json.dump(c, f, indent=1)
+        print("Phone alerts off. 'klipper-deck notify setup' turns them back on.")
+    else:
+        print("Phone alerts: %s" % ("ON, topic " + c["topic"] if notify_conf() else "off"))
+        print("Use: klipper-deck notify setup | test | off")
+
+
 def api(path, method="GET", timeout=5):
     req = urllib.request.Request(API + path, method=method)
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -168,7 +283,7 @@ def api(path, method="GET", timeout=5):
 
 
 def query_status():
-    q = "print_stats&virtual_sdcard&gcode_move&extruder=target&heater_bed=target&fan&webhooks"
+    q = "print_stats&virtual_sdcard&gcode_move&extruder=target&heater_bed=target&fan&webhooks&display_status"
     return api("/printer/objects/query?" + q)["result"]["status"]
 
 
@@ -519,13 +634,20 @@ def log_size():
 
 def recover(snap, failure_text, start):
     say("USB link to the printer was lost mid-print.")
+    fname = snap.get("original") or snap.get("filename")
     if not auto_enabled():
         say("Auto-resume is off. Run 'klipper-deck resume' to resume by hand.")
+        notify("Print stopped: USB dropout", "%s stopped. Auto-resume is off." % fname,
+               priority=5, tags=["warning"])
         return
     if snap.get("attempts", 0) >= MAX_ATTEMPTS:
         say("Already auto-resumed %d times for this print; not trying again." % MAX_ATTEMPTS)
+        notify("Print stopped: too many dropouts", "%s dropped %d times. Not resuming again; "
+               "check the USB/dock." % (fname, MAX_ATTEMPTS + 1), priority=5, tags=["warning"])
         return
     say("Waiting for the printer's USB to come back (heaters are off, so speed matters)...")
+    notify("USB dropout: recovering", "%s lost its USB link. Reconnecting and resuming "
+           "automatically..." % fname, priority=4, tags=["rotating_light"], buttons=("open",))
     deadline = time.time() + MAX_OUTAGE
     time.sleep(2)
     ready = False
@@ -534,6 +656,9 @@ def recover(snap, failure_text, start):
         if not dev:
             say("Printer didn't come back within %d minutes. Giving up; "
                 "you can still try 'klipper-deck resume'." % (MAX_OUTAGE // 60))
+            notify("Print lost: printer didn't come back", "%s: printer USB didn't return in %d min. "
+                   "Needs you: replug the dock, then 'klipper-deck resume'."
+                   % (fname, MAX_OUTAGE // 60), priority=5, tags=["sos"])
             return
         remember_topology(dev)
         say("Printer is back on %s. Restarting Klipper..." % dev)
@@ -551,12 +676,43 @@ def recover(snap, failure_text, start):
             break
     if not ready:
         say("Klipper didn't get ready. Check Mainsail; you can try 'klipper-deck resume'.")
+        notify("Print lost: Klipper won't reconnect", "%s: needs you. Check Mainsail, then "
+               "'klipper-deck resume'." % fname, priority=5, tags=["sos"])
         return
     try:
-        do_resume(snap, failure_text, start=start)
+        if do_resume(snap, failure_text, start=start):
+            notify("Print resumed", "%s resumed after the USB dropout. Check it when you can: "
+                   "there may be a small seam." % fname, priority=4, tags=["white_check_mark"],
+                   buttons=("pause", "cancel", "open"))
         gcode('RESPOND TYPE=command MSG="Print auto-resumed after a USB dropout"')
     except Exception as e:
         say("Resume failed: %s" % e)
+        notify("Print lost: resume failed", "%s: %s" % (fname, e), priority=5, tags=["sos"])
+
+
+def print_alert(prev, state, fname, st, pending_error):
+    """Phone alerts for print state changes. Returns a pending error (or None)."""
+    name = re.sub(r"^(RESUME\d*-)+", "", fname)
+    if state == "printing" and prev in ("standby", "complete", "cancelled", "error"):
+        if not fname.startswith("RESUME"):
+            notify("Print started", name, priority=2, tags=["printer"],
+                   buttons=("pause", "cancel", "open"))
+    elif state == "printing" and prev == "paused":
+        notify("Print resumed", name, priority=2, tags=["arrow_forward"],
+               buttons=("pause", "cancel", "open"))
+    elif state == "paused":
+        notify("Print paused", "%s is paused (filament runout or someone pressed pause)." % name,
+               priority=4, tags=["pause_button"], buttons=("resume", "cancel", "open"))
+    elif state == "complete":
+        mins = int((st["print_stats"].get("print_duration") or 0) // 60)
+        notify("Print finished", "%s done in %dh %02dm." % (name, mins // 60, mins % 60),
+               priority=3, tags=["tada"])
+    elif state == "cancelled":
+        notify("Print cancelled", name, priority=3, tags=["stop_button"])
+    elif state == "error" and prev == "printing":
+        msg = st["print_stats"].get("message") or st["webhooks"].get("state_message") or "error"
+        return (time.time(), name, msg.strip().splitlines()[0][:200])
+    return pending_error
 
 
 def run():
@@ -582,14 +738,21 @@ def run():
         say("USB: printer %s on hub %s, controller %s" % (topo["printer"], topo["hub"], topo["controller"]))
     start_container(dev)
     say("Auto-resume after USB dropouts is %s." % ("ON" if auto_enabled() else "OFF"))
+    say("Phone alerts are %s." % ("ON" if notify_conf() else "off (klipper-deck notify setup)"))
     log_pos = log_size()
     was_printing = False
+    prev_state = None
+    pending_error = None      # (when, filename, message): held briefly in case it's a USB dropout
     try:
         while not stop["flag"]:
             time.sleep(POLL)
             try:
                 st = query_status()
                 state = st["print_stats"].get("state")
+                fname = st["print_stats"].get("filename") or ""
+                if prev_state is not None and state != prev_state:
+                    pending_error = print_alert(prev_state, state, fname, st, pending_error)
+                prev_state = state
                 if state == "printing":
                     save_snapshot(st)
                 # A USB dropout turns the state into "error": keep the last real
@@ -608,9 +771,15 @@ def run():
                 window = read_log_from(win_start)
                 snap = load_snapshot()
                 if snap:
+                    pending_error = None          # the recovery sends its own alerts
                     recover(snap, window, start=log_pos - win_start)
                 size = log_size()
                 was_printing = False
+                prev_state = None
+            if pending_error and time.time() - pending_error[0] > 3 * POLL + 2:
+                notify("Print failed", "%s: %s" % (pending_error[1], pending_error[2]),
+                       priority=5, tags=["x"])
+                pending_error = None
             log_pos = size
     finally:
         say("Stopping Klipper...")
@@ -634,6 +803,8 @@ def main():
         text = read_log_from(0)
         i = text.rfind("Starting SD card print")
         do_resume(snap, text[i:] if i >= 0 else text, ask=True)
+    elif cmd == "notify":
+        notify_cmd(sys.argv[2:])
     elif cmd == "usbreset":
         topo = load_topology()
         if not topo:
