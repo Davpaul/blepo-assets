@@ -22,7 +22,7 @@ On the Deck, in Konsole:
 
 ```bash
 cd ~/Downloads/blepo-assets && git pull
-bash sidewinder-x1-steamdeck/klipper-deck/add-filament.sh
+bash sidewinder-x1-steamdeck/klipper-deck/add-extras.sh
 ```
 
 Then in Mainsail's console type `FIRMWARE_RESTART`.

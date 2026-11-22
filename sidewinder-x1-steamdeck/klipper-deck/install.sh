@@ -37,6 +37,11 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 echo "net.ipv4.ip_unprivileged_port_start=80" | sudo tee /etc/sysctl.d/99-klipper-deck.conf >/dev/null
 sudo sysctl -q -w net.ipv4.ip_unprivileged_port_start=80
+# Stop USB power saving from switching hubs/printers off mid-print
+echo 'ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="on"' \
+    | sudo tee /etc/udev/rules.d/99-usb-no-autosuspend.rules >/dev/null
+echo -1 | sudo tee /sys/module/usbcore/parameters/autosuspend >/dev/null
+for c in /sys/bus/usb/devices/*/power/control; do echo on | sudo tee "$c" >/dev/null 2>&1 || true; done
 # SteamOS can have firewalld running, which blocks other devices from reaching the web page
 if command -v firewall-cmd >/dev/null && sudo firewall-cmd --state >/dev/null 2>&1; then
     sudo firewall-cmd -q --permanent --add-service=http
@@ -53,6 +58,9 @@ podman build -t localhost/klipper-deck -f "$KIT/container/Containerfile" "$KIT/c
 step "6/6 Installing the klipper-deck command and desktop shortcut"
 mkdir -p "$HOME/.local/bin" "$HOME/.config/klipper-deck" "$HOME/klipper-deck/printer_data" "$HOME/.local/share/applications"
 install -m 755 "$KIT/klipper-deck" "$HOME/.local/bin/klipper-deck"
+mkdir -p "$HOME/.local/share/klipper-deck"
+install -m 755 "$KIT/guard.py" "$HOME/.local/share/klipper-deck/guard.py"
+bash "$KIT/add-extras.sh" || true
 echo "$KIT" > "$HOME/.config/klipper-deck/src"
 if ! grep -q 'HOME/.local/bin' "$HOME/.bashrc" 2>/dev/null; then
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"

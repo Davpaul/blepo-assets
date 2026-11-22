@@ -119,6 +119,45 @@ Uploaded files live on the Deck in `~/klipper-deck/printer_data/gcodes`.
 
 ---
 
+## Auto-resume after a USB dropout
+
+If the printer's USB connection drops mid-print, `klipper-deck start` deals with it by itself:
+
+1. Spots the dropout in Klipper's log within a couple of seconds.
+2. Waits (up to 15 min) for the printer's USB to come back.
+3. Restarts Klipper on the new connection.
+4. Works out the exact point the printer had reached, backing up about a second so there's no gap.
+5. Builds a `RESUME1-yourfile.gcode` and starts it. That file lifts the nozzle 5mm, homes X and Y only (Z is never homed, so it can't crash into the print), reheats, moves back to the spot and carries on.
+
+You'll see "Print auto-resumed after a USB dropout" in Mainsail's console.
+
+**When it won't resume:**
+- The print was cancelled, finished, or stopped for a heater or safety error.
+- The same print has already been resumed 3 times.
+- The printer was gone for more than 15 minutes.
+
+**Before trusting it:** while the motors were off, the gantry may have slipped down a little. If the nozzle is resting on the print when you check, stop it and don't resume.
+
+**What to expect:** a small seam or blob where it restarted, and a few strings from the move back. If the bed cooled a lot, the part may have lifted. PETG and PLA on a warm bed usually stay put.
+
+| Do this | Command |
+|---|---|
+| Resume by hand (e.g. after the Deck crashed or rebooted) | Start Klipper, then `klipper-deck resume`. It asks before starting |
+| Turn auto-resume off / on | `klipper-deck autoresume off` / `on` |
+
+**Updating to get this** (if you installed before it existed):
+```bash
+cd ~/Downloads/blepo-assets && git pull
+cd sidewinder-x1-steamdeck/klipper-deck && bash install.sh
+```
+The container build is cached, so it's quick. It also:
+- turns off USB power saving
+- adds the one setting auto-resume needs to your `printer.cfg`, keeping your calibration
+
+Restart Klipper afterwards.
+
+**Fix the cause too.** Auto-resume is a safety net. Dropouts usually come from the dock or hub: plug the printer straight into the Deck's own USB-C port if you can.
+
 ## Day-to-day
 
 | Do this | Command |
@@ -147,7 +186,7 @@ I can't reach your home network from here. When something looks off, paste me:
 | `No printer found` | Printer on? Try another cable (plenty are charge-only) |
 | Mainsail: "mcu: Unable to connect" | Printer off, or it needs flashing: `klipper-deck stop`, then `klipper-deck flash` |
 | Mainsail: "protocol error" / "version mismatch" | `klipper-deck flash` |
-| "Lost communication with MCU" mid-move | Unplug the touch screen cable from the mainboard (Step 3) |
+| "Lost communication with MCU" mid-move | USB dropout. Auto-resume should pick it up. Fix the cause: printer straight into the Deck's USB-C (not a dock/hub), unplug the touch screen cable from the mainboard, short good cable |
 | Can't open the page from the Mac | Use the IP that `klipper-deck status` shows, not `steamdeck.local`. Both devices must be on the same Wi-Fi. If it loads on the Deck but not the Mac, the Deck's firewall is blocking it: run `sudo firewall-cmd --permanent --add-service=http --add-port=7125/tcp && sudo firewall-cmd --reload` |
 | After a SteamOS update, USB or port 80 stops working | Run `install.sh` again. Your config and files are kept |
 
