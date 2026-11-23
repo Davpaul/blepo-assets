@@ -139,6 +139,8 @@ If the printer's USB connection drops mid-print, `klipper-deck start` deals with
 
 You'll see "Print auto-resumed after a USB dropout" in Mainsail's console.
 
+**If it drops while the print is paused:** it reconnects and gets everything ready, but doesn't start printing, because you paused for a reason (e.g. the filament ran out). You get an alert with a **Continue** button. Press it once you've sorted whatever you paused for, or start the `RESUME…` file from Mainsail. It knows the pause lifted the nozzle, and carries on from exactly where it paused.
+
 **When it won't resume:**
 - The print was cancelled, finished, or stopped for a heater or safety error.
 - It keeps dropping within 2 minutes of resuming, 3 times in a row (resuming clearly isn't working, so it stops instead of heating and cooling over and over).

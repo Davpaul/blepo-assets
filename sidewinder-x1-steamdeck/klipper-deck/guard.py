@@ -275,7 +275,10 @@ def notify(title, message, priority=3, tags=None, buttons=("open",)):
     for b in buttons[:3]:
         if not base:
             break
-        if b == "open":
+        if isinstance(b, tuple):
+            acts.append({"action": "http", "label": b[0], "method": "POST",
+                         "url": base + b[1], "clear": True})
+        elif b == "open":
             acts.append({"action": "view", "label": "Open Mainsail", "url": base, "clear": False})
         else:
             acts.append({"action": "http", "label": b.capitalize(), "method": "POST",
@@ -413,6 +416,10 @@ def wait_ready(timeout=120):
     return False
 
 
+def base_name(n):
+    return re.sub(r"^(RESUME\d*-)+", "", n or "")
+
+
 def save_snapshot(st):
     snap = {
         "time": time.time(),
@@ -424,17 +431,23 @@ def save_snapshot(st):
         "homing_origin": st["gcode_move"].get("homing_origin", [0, 0, 0, 0]),
         "speed_factor": st["gcode_move"].get("speed_factor", 1),
         "extrude_factor": st["gcode_move"].get("extrude_factor", 1),
+        "state": st["print_stats"].get("state"),
+        # where the toolhead physically is (while paused: lifted and parked)
+        "position": st["gcode_move"].get("position", [0, 0, 0, 0]),
         "attempts": 0,
     }
     old = load_snapshot()
+    fname = snap["filename"] or ""
     # Only a RESUME file carries the count on. Starting a file fresh (even the
     # same one as last time) is a new print and starts from zero.
-    if old and old.get("filename") == snap["filename"] and snap["filename"].startswith("RESUME"):
-        for k in ("attempts", "original", "last_resume_time", "quick_fails"):
-            if k in old:
-                snap[k] = old[k]
+    if fname.startswith("RESUME"):
+        snap["original"] = base_name(fname)
+        if old and base_name(old.get("original") or old.get("filename")) == snap["original"]:
+            for k in ("attempts", "last_resume_time", "quick_fails"):
+                if k in old:
+                    snap[k] = old[k]
     else:
-        snap["original"] = snap["filename"]
+        snap["original"] = fname
     tmp = SNAP + ".tmp"
     with open(tmp, "w") as f:
         json.dump(snap, f)
@@ -617,6 +630,10 @@ def build_resume(gcode_path, sd_pos, back_seconds, snap=None):
     origin = snap.get("homing_origin") or [0, 0, 0, 0]
     zoff = origin[2] if len(origin) > 2 else 0.0
     zphys = rs.pos["Z"] + zoff
+    paused = snap.get("state") == "paused"
+    if paused and snap.get("position"):
+        zphys = snap["position"][2]          # PAUSE lifted the nozzle: use where it really is
+    prime = 1.5 + (1.0 if paused else 0.0)    # Mainsail's PAUSE also retracted 1mm
 
     pre = []
     add = pre.append
@@ -647,7 +664,7 @@ def build_resume(gcode_path, sd_pos, back_seconds, snap=None):
     add("G90")
     add("G1 X%.3f Y%.3f F6000" % (rs.pos["X"], rs.pos["Y"]))
     add("G1 Z%.3f F600" % rs.pos["Z"])
-    add("G1 E1.5 F1800")
+    add("G1 E%.2f F1800" % prime)
     if rs.fan is not None:
         add("M106 S%.0f" % rs.fan)
     elif snap.get("fan"):
@@ -701,17 +718,24 @@ def map_to_original(src, sd_pos, back, snap):
     return orig_path, n + (sd_pos - body_start), back
 
 
-def do_resume(snap, log_text, ask=False, start=0):
+def do_resume(snap, log_text, ask=False, start=0, autostart=True):
+    """Build a RESUME file and (normally) start it. Returns its name, or None."""
     fname = snap.get("filename")
     src = os.path.join(GCODES, fname) if fname else None
     if not src or not os.path.exists(src):
         say("Can't find the G-code file %r, so can't resume." % fname)
-        return False
-    sd_pos, buf = last_position_from_log(log_text, start)
-    if sd_pos is None:
-        sd_pos, buf = snap.get("file_position", 0), 2.0
-        say("No position in the log; using the last snapshot (less exact).")
-    back = buf + EXTRA_BACKUP
+        return None
+    if snap.get("state") == "paused":
+        # Paused: everything read so far was finished before it paused, so the
+        # saved file position is exact. No backing up.
+        sd_pos, back = snap.get("file_position", 0), 0.0
+        say("It was paused, so continuing from exactly where it paused.")
+    else:
+        sd_pos, buf = last_position_from_log(log_text, start)
+        if sd_pos is None:
+            sd_pos, buf = snap.get("file_position", 0), 2.0
+            say("No position in the log; using the last snapshot (less exact).")
+        back = buf + EXTRA_BACKUP
     src, sd_pos, back = map_to_original(src, sd_pos, back, snap)
     data, off, rs = build_resume(src, sd_pos, back, snap)
     base = os.path.basename(snap.get("original") or fname)
@@ -725,7 +749,9 @@ def do_resume(snap, log_text, ask=False, start=0):
         a = input("Check the print head hasn't dropped onto the print. Start the resume? [y/N] ")
         if not a.lower().startswith("y"):
             say("Not started. The file is in your print list if you want it later.")
-            return False
+            return None
+    if not autostart:
+        return out_name
     snap["attempts"] = snap.get("attempts", 0) + 1
     snap["last_resume_time"] = time.time()
     snap["filename"] = out_name
@@ -733,7 +759,7 @@ def do_resume(snap, log_text, ask=False, start=0):
         json.dump(snap, f)
     api("/printer/print/start?filename=" + urllib.parse.quote(out_name), "POST", timeout=15)
     say("Resume started.")
-    return True
+    return out_name
 
 
 def read_log_from(offset):
@@ -769,15 +795,15 @@ def should_resume(snap, now=None):
     return True, ""
 
 
-def recover(snap, failure_text, start):
-    say("USB link to the printer was lost mid-print.")
+def recover(snap, failure_text, start, paused=False):
+    say("USB link to the printer was lost %s." % ("while the print was paused" if paused else "mid-print"))
     fname = snap.get("original") or snap.get("filename")
     if not auto_enabled():
         say("Auto-resume is off. Run 'klipper-deck resume' to resume by hand.")
         notify("Print stopped: USB dropout", "%s stopped. Auto-resume is off." % fname,
                priority=5, tags=["warning"])
         return
-    ok, why = should_resume(snap)
+    ok, why = should_resume(snap) if not paused else (True, "")
     if not ok:
         say(why + " Not resuming again.")
         notify("Print stopped: not resuming", "%s: %s Check the USB/dock, then "
@@ -785,8 +811,10 @@ def recover(snap, failure_text, start):
                priority=5, tags=["warning"])
         return
     say("Waiting for the printer's USB to come back (heaters are off, so speed matters)...")
-    notify("USB dropout: recovering", "%s lost its USB link. Reconnecting and resuming "
-           "automatically..." % fname, priority=4, tags=["rotating_light"], buttons=("open",))
+    notify("USB dropout: recovering", "%s lost its USB link. Reconnecting%s..."
+           % (fname, " (it was paused, so it'll wait for you to continue)" if paused
+              else " and resuming automatically"),
+           priority=4, tags=["rotating_light"], buttons=("open",))
     deadline = time.time() + MAX_OUTAGE
     time.sleep(2)
     ready = False
@@ -819,6 +847,17 @@ def recover(snap, failure_text, start):
                "'klipper-deck resume'." % fname, priority=5, tags=["sos"])
         return
     try:
+        if paused:
+            out = do_resume(snap, failure_text, start=start, autostart=False)
+            if out:
+                say("Ready to continue, but NOT started because the print was paused. "
+                    "Start %s from Mainsail (or the alert) when you're ready." % out)
+                notify("Paused print reconnected", "%s dropped while paused. It's reconnected and "
+                       "ready: press Continue when you've sorted whatever you paused for."
+                       % fname, priority=4, tags=["pause_button"],
+                       buttons=(("Continue", "/printer/print/start?filename=" + urllib.parse.quote(out)),
+                                "open"))
+            return
         if do_resume(snap, failure_text, start=start):
             notify("Print resumed", "%s resumed after the USB dropout. Check it when you can: "
                    "there may be a small seam." % fname, priority=4, tags=["white_check_mark"],
@@ -880,6 +919,7 @@ def run():
     say("Phone alerts are %s." % ("ON" if notify_conf() else "off (klipper-deck notify setup)"))
     log_pos = log_size()
     was_printing = False
+    was_paused = False
     prev_state = None
     pending_error = None      # (when, filename, message): held briefly in case it's a USB dropout
     try:
@@ -894,12 +934,13 @@ def run():
                 if prev_state is not None and state != prev_state:
                     pending_error = print_alert(prev_state, state, fname, st, pending_error)
                 prev_state = state
-                if state == "printing":
+                if state in ("printing", "paused"):
                     save_snapshot(st)
                 # A USB dropout turns the state into "error": keep the last real
                 # state so we know a print was running. Cancel / complete clear it.
                 if state != "error":
-                    was_printing = state == "printing"
+                    was_printing = state in ("printing", "paused")
+                    was_paused = state == "paused"
             except Exception:
                 pass  # Moonraker briefly unreachable is normal during restarts
             size = log_size()
@@ -913,7 +954,7 @@ def run():
                 snap = load_snapshot()
                 if snap:
                     pending_error = None          # the recovery sends its own alerts
-                    recover(snap, window, start=log_pos - win_start)
+                    recover(snap, window, start=log_pos - win_start, paused=was_paused)
                 size = log_size()
                 was_printing = False
                 prev_state = None
