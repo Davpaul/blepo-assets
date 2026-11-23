@@ -141,7 +141,9 @@ You'll see "Print auto-resumed after a USB dropout" in Mainsail's console.
 
 **When it won't resume:**
 - The print was cancelled, finished, or stopped for a heater or safety error.
-- The same print has already been resumed 6 times. To change the limit: `echo 10 > ~/.config/klipper-deck/max-resumes`
+- It keeps dropping within 2 minutes of resuming, 3 times in a row (resuming clearly isn't working, so it stops instead of heating and cooling over and over).
+
+There's no limit on how many times it resumes a print otherwise. If you ever want one: `echo 10 > ~/.config/klipper-deck/max-resumes`
 - The printer was gone for more than 5 minutes.
 
 **Before trusting it:** while the motors were off, the gantry may have slipped down a little. If the nozzle is resting on the print when you check, stop it and don't resume.

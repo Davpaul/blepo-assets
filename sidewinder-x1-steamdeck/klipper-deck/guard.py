@@ -49,14 +49,17 @@ SNAP = os.path.join(STATE_DIR, "resume-state.json")
 
 POLL = float(os.environ.get("KD_POLL", "2"))
 def _max_attempts():
+    """0 = no limit (the default). A number in ~/.config/klipper-deck/max-resumes sets one."""
     try:
         with open(os.path.join(CONF_DIR, "max-resumes")) as f:
             return max(0, int(f.read().strip()))
     except (OSError, ValueError):
-        return 6
+        return 0
 
 
-MAX_ATTEMPTS = _max_attempts()   # auto-resumes per print
+MAX_ATTEMPTS = _max_attempts()   # auto-resumes per print, 0 = unlimited
+QUICK_FAIL = 120                 # a dropout this soon after a resume counts as "the resume failed"
+MAX_QUICK_FAILS = 3              # ...and this many of those in a row means stop looping
 MAX_OUTAGE = float(os.environ.get("KD_MAX_OUTAGE", 5 * 60))   # bed is cooling: don't wait forever
 STEP_WAIT = float(os.environ.get("KD_STEP_WAIT", "8"))        # wait between USB recovery steps
 EXTRA_BACKUP = 1.0         # seconds re-printed on top of Klipper's buffer, to avoid a gap
@@ -424,9 +427,12 @@ def save_snapshot(st):
         "attempts": 0,
     }
     old = load_snapshot()
-    if old and old.get("filename") == snap["filename"]:
-        snap["attempts"] = old.get("attempts", 0)
-        snap["original"] = old.get("original", snap["filename"])
+    # Only a RESUME file carries the count on. Starting a file fresh (even the
+    # same one as last time) is a new print and starts from zero.
+    if old and old.get("filename") == snap["filename"] and snap["filename"].startswith("RESUME"):
+        for k in ("attempts", "original", "last_resume_time", "quick_fails"):
+            if k in old:
+                snap[k] = old[k]
     else:
         snap["original"] = snap["filename"]
     tmp = SNAP + ".tmp"
@@ -692,6 +698,7 @@ def do_resume(snap, log_text, ask=False, start=0):
             say("Not started. The file is in your print list if you want it later.")
             return False
     snap["attempts"] = snap.get("attempts", 0) + 1
+    snap["last_resume_time"] = time.time()
     snap["filename"] = out_name
     with open(SNAP, "w") as f:
         json.dump(snap, f)
@@ -716,6 +723,23 @@ def log_size():
         return 0
 
 
+def should_resume(snap, now=None):
+    """Decide whether to auto-resume again. Updates snap['quick_fails']."""
+    now = now or time.time()
+    attempts = snap.get("attempts", 0)
+    if MAX_ATTEMPTS and attempts >= MAX_ATTEMPTS:
+        return False, "Already auto-resumed %d times (your limit)." % attempts
+    last = snap.get("last_resume_time")
+    if attempts and last and now - last < QUICK_FAIL:
+        snap["quick_fails"] = snap.get("quick_fails", 0) + 1
+    else:
+        snap["quick_fails"] = 0
+    if snap["quick_fails"] >= MAX_QUICK_FAILS:
+        return False, ("Dropped within %d s of resuming %d times in a row, so resuming "
+                       "isn't working." % (QUICK_FAIL, snap["quick_fails"]))
+    return True, ""
+
+
 def recover(snap, failure_text, start):
     say("USB link to the printer was lost mid-print.")
     fname = snap.get("original") or snap.get("filename")
@@ -724,10 +748,12 @@ def recover(snap, failure_text, start):
         notify("Print stopped: USB dropout", "%s stopped. Auto-resume is off." % fname,
                priority=5, tags=["warning"])
         return
-    if snap.get("attempts", 0) >= MAX_ATTEMPTS:
-        say("Already auto-resumed %d times for this print; not trying again." % MAX_ATTEMPTS)
-        notify("Print stopped: too many dropouts", "%s dropped %d times. Not resuming again; "
-               "check the USB/dock." % (fname, MAX_ATTEMPTS + 1), priority=5, tags=["warning"])
+    ok, why = should_resume(snap)
+    if not ok:
+        say(why + " Not resuming again.")
+        notify("Print stopped: not resuming", "%s: %s Check the USB/dock, then "
+               "'klipper-deck resume' if the print looks OK." % (fname, why),
+               priority=5, tags=["warning"])
         return
     say("Waiting for the printer's USB to come back (heaters are off, so speed matters)...")
     notify("USB dropout: recovering", "%s lost its USB link. Reconnecting and resuming "
