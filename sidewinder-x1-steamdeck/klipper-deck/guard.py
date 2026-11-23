@@ -674,6 +674,33 @@ def build_resume(gcode_path, sd_pos, back_seconds, snap=None):
 
 # ---------------------------------------------------------------- recovery
 
+RESUME_MARK = b"; ---- original file continues ----\n"
+
+
+def map_to_original(src, sd_pos, back, snap):
+    """If the stopped file was itself a RESUME file, work from the original
+    G-code instead. A RESUME file is our preamble (heat, lift, home X/Y, move
+    back) followed by the original from byte N. If it stopped inside the
+    preamble (e.g. while reheating), the right place is still byte N exactly.
+    Otherwise it's N plus however far into the original part it got."""
+    if not os.path.basename(src).startswith("RESUME"):
+        return src, sd_pos, back
+    orig = snap.get("original")
+    orig_path = os.path.join(GCODES, orig) if orig else None
+    with open(src, "rb") as f:
+        head = f.read(4 * 1024 * 1024)
+    m = re.search(rb"resumed at byte (\d+)", head)
+    mk = head.find(RESUME_MARK)
+    if not (m and mk >= 0 and orig_path and os.path.exists(orig_path)
+            and not orig.startswith("RESUME")):
+        return src, sd_pos, back             # fall back to working from the RESUME file
+    n, body_start = int(m.group(1)), mk + len(RESUME_MARK)
+    if sd_pos <= body_start:
+        say("It stopped while the last resume was still getting ready; resuming from the same point.")
+        return orig_path, n, 0.0
+    return orig_path, n + (sd_pos - body_start), back
+
+
 def do_resume(snap, log_text, ask=False, start=0):
     fname = snap.get("filename")
     src = os.path.join(GCODES, fname) if fname else None
@@ -684,7 +711,9 @@ def do_resume(snap, log_text, ask=False, start=0):
     if sd_pos is None:
         sd_pos, buf = snap.get("file_position", 0), 2.0
         say("No position in the log; using the last snapshot (less exact).")
-    data, off, rs = build_resume(src, sd_pos, buf + EXTRA_BACKUP, snap)
+    back = buf + EXTRA_BACKUP
+    src, sd_pos, back = map_to_original(src, sd_pos, back, snap)
+    data, off, rs = build_resume(src, sd_pos, back, snap)
     base = os.path.basename(snap.get("original") or fname)
     base = re.sub(r"^(RESUME\d*-)+", "", base)
     out_name = "RESUME%d-%s" % (snap.get("attempts", 0) + 1, base)
