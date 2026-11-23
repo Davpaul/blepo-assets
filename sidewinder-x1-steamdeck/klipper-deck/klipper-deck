@@ -9,6 +9,8 @@
 #   klipper-deck update   rebuild the container from the kit folder
 #   klipper-deck shell    open a shell inside the container (for tinkering)
 #   klipper-deck resume   resume the last print by hand (after a crash or reboot)
+#        --touch          find the real height by lowering onto paper on top of the print
+#        --redo-last      the last resume printed rubbish: start again from where it began
 #   klipper-deck autoresume on|off   auto-resume after USB dropouts (default on)
 #   klipper-deck usbreset software unplug/replug of the dock, instead of doing it by hand
 #   klipper-deck notify setup|test|off   phone alerts with Pause/Resume/Cancel buttons
@@ -95,7 +97,7 @@ cmd_start() {
 
 cmd_resume() {
     [ -f "$LIB/guard.py" ] || { echo "guard.py missing. Re-run install.sh."; exit 1; }
-    KD_DATA="$DATA" python3 "$LIB/guard.py" resume
+    KD_DATA="$DATA" python3 "$LIB/guard.py" resume "$@"
 }
 
 cmd_autoresume() {
@@ -172,9 +174,9 @@ case "${1:-}" in
     status) cmd_status ;;
     update) cmd_update ;;
     shell)  cmd_shell ;;
-    resume) cmd_resume ;;
+    resume) shift; cmd_resume "$@" ;;
     autoresume) cmd_autoresume "${2:-}" ;;
     usbreset) python3 "$LIB/guard.py" usbreset ;;
     notify) KD_HTTP_PORT="$(http_port)" python3 "$LIB/guard.py" notify "${2:-}" ;;
-    *) sed -n 2,16p "$0" | sed 's/^# \{0,1\}//' ;;
+    *) sed -n 2,18p "$0" | sed 's/^# \{0,1\}//' ;;
 esac

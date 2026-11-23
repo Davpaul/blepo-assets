@@ -135,6 +135,7 @@ If the printer's USB connection drops mid-print, `klipper-deck start` deals with
 5. Builds a `RESUME1-yourfile.gcode` and starts it. That file:
    - reheats the bed, then the nozzle to full temperature, **before anything moves**, so a cold nozzle can't rip the print
    - retracts a little, lifts the nozzle 5mm and homes X and Y only. Z is never homed, so it can't crash into the print
+   - squirts a little waste filament at the front-left corner to clear the nozzle
    - moves back to the spot and carries on
 
 You'll see "Print auto-resumed after a USB dropout" in Mainsail's console.
@@ -155,6 +156,8 @@ There's no limit on how many times it resumes a print otherwise. If you ever wan
 | Do this | Command |
 |---|---|
 | Resume by hand (e.g. after the Deck crashed or rebooted) | Start Klipper, then `klipper-deck resume`. It asks before starting |
+| Resume but you don't trust the height (nozzle moved, gantry dropped) | `klipper-deck resume --touch`: you lower the nozzle onto paper on top of the print first |
+| The last resume printed in mid-air / rubbish | `klipper-deck resume --redo-last`: starts again from where that resume began, with the paper touch-off |
 | Turn auto-resume off / on | `klipper-deck autoresume off` / `on` |
 | Dock stuck, printer won't reconnect (instead of unplugging the dock) | `klipper-deck usbreset`, then **FIRMWARE RESTART** in Mainsail |
 

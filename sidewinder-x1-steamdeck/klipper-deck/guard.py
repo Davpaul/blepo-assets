@@ -62,6 +62,7 @@ QUICK_FAIL = 120                 # a dropout this soon after a resume counts as 
 MAX_QUICK_FAILS = 3              # ...and this many of those in a row means stop looping
 MAX_OUTAGE = float(os.environ.get("KD_MAX_OUTAGE", 5 * 60))   # bed is cooling: don't wait forever
 STEP_WAIT = float(os.environ.get("KD_STEP_WAIT", "8"))        # wait between USB recovery steps
+PURGE = float(os.environ.get("KD_PURGE", "8"))   # mm of filament squirted out before going back
 EXTRA_BACKUP = 1.0         # seconds re-printed on top of Klipper's buffer, to avoid a gap
 TOPO = os.path.join(STATE_DIR, "usb-topology.json")
 USB_RESET = shlex.split(os.environ.get("KD_USB_RESET", "sudo -n /etc/klipper-deck/usb-reset"))
@@ -377,6 +378,68 @@ def query_status():
     return api("/printer/objects/query?" + q)["result"]["status"]
 
 
+def gcode_wait(script, timeout=1800):
+    api("/printer/gcode/script?script=" + urllib.parse.quote(script), "POST", timeout=timeout)
+
+
+def top_under_nozzle(rs):
+    """Height of the plastic directly under the resume point. If the move that
+    ended there was printing, it's this layer; if it was a travel, this layer
+    hasn't been printed there yet, so it's the layer below. Uses the slicer's
+    ;Z: layer markers when present (OrcaSlicer/PrusaSlicer write them)."""
+    cur = rs.layer_z if rs.layer_z is not None else rs.ez
+    prev = rs.layer_prev if rs.layer_z is not None else rs.prev_ez
+    if cur is None:
+        return rs.pos["Z"]
+    if rs.last_extruded:
+        return rs.ez if rs.ez is not None else cur
+    return prev if prev is not None else cur
+
+
+def touch_off(x, y, top_z, zoff, hot, bed):
+    """Find the real height: move over the print, heat, and let the user lower
+    the nozzle onto a sheet of paper on top of the print. Returns the nozzle's
+    true toolhead Z afterwards (lifted 2mm clear)."""
+    print("\nStep 1: lifting 5mm, homing X/Y and moving over the print...")
+    gcode_wait("SET_KINEMATIC_POSITION X=0 Y=0 Z=200 SET_HOMED=Z")   # pretend: true height unknown
+    gcode_wait("G91\nG1 Z5 F600\nG90")
+    gcode_wait("G28 X Y")
+    gcode_wait("G90\nG1 X%.3f Y%.3f F6000" % (x, y))
+    print("Step 2: heating (bed %d, nozzle %d). This can take a few minutes..." % (bed, hot))
+    gcode_wait("M140 S%d\nM104 S%d" % (bed, hot))
+    if bed:
+        gcode_wait("M190 S%d" % bed)
+    gcode_wait("M109 S%d" % hot)
+    print("""
+Step 3: put a sheet of plain paper on top of the print, under the nozzle.
+Lower the nozzle until the paper just drags when you slide it.
+  d = down 0.1mm    D = down 1mm    u = up 0.1mm    U = up 1mm
+  ok = it's touching the paper     q = quit without printing
+""")
+    fake, lowered = 200.0, 0.0
+    while True:
+        a = input("> ").strip()
+        steps = {"d": -0.1, "D": -1.0, "u": 0.1, "U": 1.0}
+        if a in steps:
+            if a in "dD" and lowered - steps[a] > 40:
+                print("That's 40mm down already. Something's wrong; type q and check the printer.")
+                continue
+            gcode_wait("G91\nG1 Z%.2f F300\nG90" % steps[a])
+            fake += steps[a]
+            lowered -= steps[a]
+            print("   lowered %.1fmm so far" % lowered)
+        elif a == "ok":
+            break
+        elif a == "q":
+            gcode_wait("G91\nG1 Z5 F600\nG90\nM104 S0\nM140 S0")
+            return None
+    true_z = top_z + zoff + 0.1        # nozzle is resting on paper on the top layer
+    gcode_wait("SET_KINEMATIC_POSITION X=%.3f Y=%.3f Z=%.3f" % (x, y, true_z))
+    gcode_wait("G91\nG1 Z2 F600\nG90")
+    print("Got it. Take the paper out. Starting the resume...")
+    return true_z + 2.0
+
+
 def gcode(script):
     try:
         api("/printer/gcode/script?script=" + urllib.parse.quote(script), "POST", timeout=10)
@@ -497,6 +560,11 @@ class GState:
         self.pa = None           # last SET_PRESSURE_ADVANCE line
         self.layer = None        # last SET_PRINT_STATS_INFO CURRENT_LAYER line
         self.obj = None          # EXCLUDE_OBJECT_START NAME currently open
+        self.ez = None           # Z of the most recent extruding move
+        self.prev_ez = None      # Z of the extruding layer before that
+        self.last_extruded = False   # did the last XY move lay down plastic?
+        self.layer_z = None      # from the slicer's ";Z:" layer markers
+        self.layer_prev = None
 
     def copy(self):
         c = GState.__new__(GState)
@@ -518,6 +586,14 @@ def params(parts):
 
 def apply_line(st, raw):
     """Update state with one G-code line. Returns move duration in seconds (0 if none)."""
+    c = raw.lstrip()
+    if c.startswith(";Z:"):
+        try:
+            z = float(c[3:].split()[0])
+            if z != st.layer_z:
+                st.layer_prev, st.layer_z = st.layer_z, z
+        except (ValueError, IndexError):
+            pass
     line = raw.split(";", 1)[0].strip()
     if not line:
         return 0.0
@@ -532,6 +608,12 @@ def apply_line(st, raw):
             if a in p:
                 rel = (not st.abs_coord) or (a == "E" and not st.abs_e)
                 st.pos[a] = st.pos[a] + p[a] if rel else p[a]
+        xy = math.hypot(st.pos["X"] - old["X"], st.pos["Y"] - old["Y"])
+        if xy > 0:
+            extruding = st.pos["E"] > old["E"] + 1e-9
+            st.last_extruded = extruding
+            if extruding and st.ez != st.pos["Z"]:
+                st.prev_ez, st.ez = st.ez, st.pos["Z"]
         d = math.sqrt(sum((st.pos[a] - old[a]) ** 2 for a in "XYZ"))
         if d == 0:
             d = abs(st.pos["E"] - old["E"])
@@ -633,7 +715,11 @@ def build_resume(gcode_path, sd_pos, back_seconds, snap=None):
     paused = snap.get("state") == "paused"
     if paused and snap.get("position"):
         zphys = snap["position"][2]          # PAUSE lifted the nozzle: use where it really is
-    prime = 1.5 + (1.0 if paused else 0.0)    # Mainsail's PAUSE also retracted 1mm
+    if snap.get("z_now") is not None:
+        zphys = snap["z_now"]                # measured by touching off on the print
+    # Undo our 1.5mm retract. If there's no waste squirt to refill the nozzle,
+    # also undo the 1mm Mainsail's PAUSE retracted.
+    prime = 1.5 + (1.0 if paused and PURGE <= 0 and snap.get("z_now") is None else 0.0)
 
     pre = []
     add = pre.append
@@ -660,9 +746,15 @@ def build_resume(gcode_path, sd_pos, back_seconds, snap=None):
     add("G1 Z5 F600")                            # now lift clear of the print
     add("G90")
     add("G28 X Y")
+    if PURGE > 0:
+        # Waste squirt at the front-left corner (where X/Y homing leaves the head)
+        add("G1 E1.5 F1800")
+        add("G1 E%.1f F150" % PURGE)
+        add("G1 E-1.5 F2400")
+        add("G4 P1500")                      # let the blob drop before moving off
     add("SET_GCODE_OFFSET X=%.3f Y=%.3f Z=%.3f" % (origin[0], origin[1], zoff))
     add("G90")
-    add("G1 X%.3f Y%.3f F6000" % (rs.pos["X"], rs.pos["Y"]))
+    add("G1 X%.3f Y%.3f F9000" % (rs.pos["X"], rs.pos["Y"]))
     add("G1 Z%.3f F600" % rs.pos["Z"])
     add("G1 E%.2f F1800" % prime)
     if rs.fan is not None:
@@ -982,9 +1074,48 @@ def main():
         if not wait_ready(timeout=30):
             print("Klipper isn't ready. Start it first with: klipper-deck start")
             sys.exit(1)
+        args = sys.argv[2:]
+        touch, redo = "--touch" in args, "--redo-last" in args
+        if redo and not touch:
+            print("After a bad resume the height can't be trusted, so this will use the paper touch-off.")
+            touch = True
         text = read_log_from(0)
         i = text.rfind("Starting SD card print")
-        do_resume(snap, text[i:] if i >= 0 else text, ask=True)
+        text = text[i:] if i >= 0 else text
+        if redo:
+            # The last resume printed rubbish: go back to where it started.
+            src = os.path.join(GCODES, snap.get("filename") or "")
+            m = None
+            if snap.get("filename", "").startswith("RESUME") and os.path.exists(src):
+                with open(src, "rb") as f:
+                    m = re.search(rb"resumed at byte (\d+)", f.read(200000))
+            if not m:
+                print("The last print wasn't a resume, so there's nothing to redo.")
+                sys.exit(1)
+            snap = dict(snap, filename=base_name(snap.get("original") or snap["filename"]),
+                        state="paused", file_position=int(m.group(1)))   # exact point, no backing up
+            snap["original"] = snap["filename"]
+            print("Redoing from where the last resume started (byte %s of %s)." % (m.group(1), snap["filename"]))
+        if touch:
+            src = os.path.join(GCODES, snap["filename"])
+            if snap.get("state") == "paused":
+                pos, back = snap.get("file_position", 0), 0.0
+            else:
+                pos, buf = last_position_from_log(text)
+                pos, back = (pos, buf + EXTRA_BACKUP) if pos is not None else (snap.get("file_position", 0), 2.0)
+            src2, pos2, back2 = map_to_original(src, pos, back, snap)
+            _, _, rs = build_resume(src2, pos2, back2, snap)
+            origin = snap.get("homing_origin") or [0, 0, 0, 0]
+            top = top_under_nozzle(rs)
+            print("Touching off where the print continues: the plastic there should be at Z=%.2f." % top)
+            z_now = touch_off(rs.pos["X"], rs.pos["Y"], top, origin[2],
+                              snap.get("extruder_target") or rs.hot or 200,
+                              snap.get("bed_target") or rs.bed or 0)
+            if z_now is None:
+                print("Stopped. Nothing printed.")
+                sys.exit(0)
+            snap = dict(snap, z_now=z_now)
+        do_resume(snap, text, ask=not touch)
     elif cmd == "notify":
         notify_cmd(sys.argv[2:])
     elif cmd == "usbreset":
