@@ -789,28 +789,80 @@ def build_resume(gcode_path, sd_pos, back_seconds, snap=None):
 RESUME_MARK = b"; ---- original file continues ----\n"
 
 
+HEADER_NOTE = re.compile(rb"; original: (.+?)  resumed at byte (\d+)")
+
+
+def resume_note(path):
+    """(source file name, byte) this RESUME file was built from. Older RESUME
+    files copied the notes of every earlier resume into their header, so the
+    file's OWN note is the last one before the first real G-code line."""
+    with open(path, "rb") as f:
+        head = f.read(8 * 1024 * 1024)
+    mk = head.find(RESUME_MARK)
+    if mk < 0:
+        return None
+    first_cmd = re.search(rb"^[^;\s]", head[:mk], re.M)
+    notes = HEADER_NOTE.findall(head[:first_cmd.start() if first_cmd else mk])
+    if not notes:
+        return None
+    src, n = notes[-1]
+    return src.decode("utf-8", "replace").strip(), int(n), mk + len(RESUME_MARK)
+
+
+def start_in_original(path, depth=0):
+    """Follow a chain of RESUME files back to the original G-code. Returns
+    (original file name, byte where this file's printing part begins) or None."""
+    note = resume_note(path)
+    if not note or depth > 50:
+        return None
+    src, n, _ = note
+    src_path = os.path.join(os.path.dirname(path), src)
+    if not src.startswith("RESUME"):
+        return (src, n) if os.path.exists(src_path) else None
+    if not os.path.exists(src_path):
+        return None
+    parent = start_in_original(src_path, depth + 1)
+    pnote = resume_note(src_path)
+    if not parent or not pnote:
+        return None
+    # n is a byte in the parent RESUME file; the parent's printing part starts
+    # at pnote[2] and corresponds to parent[1] in the original
+    return parent[0], parent[1] + max(0, n - pnote[2])
+
+
 def map_to_original(src, sd_pos, back, snap):
     """If the stopped file was itself a RESUME file, work from the original
-    G-code instead. A RESUME file is our preamble (heat, lift, home X/Y, move
-    back) followed by the original from byte N. If it stopped inside the
-    preamble (e.g. while reheating), the right place is still byte N exactly.
-    Otherwise it's N plus however far into the original part it got."""
+    G-code instead. If it stopped inside our preamble (e.g. while reheating),
+    the right place is exactly where that resume began. Otherwise it's that
+    point plus however far into the printing part it got."""
     if not os.path.basename(src).startswith("RESUME"):
         return src, sd_pos, back
-    orig = snap.get("original")
-    orig_path = os.path.join(GCODES, orig) if orig else None
-    with open(src, "rb") as f:
-        head = f.read(4 * 1024 * 1024)
-    m = re.search(rb"resumed at byte (\d+)", head)
-    mk = head.find(RESUME_MARK)
-    if not (m and mk >= 0 and orig_path and os.path.exists(orig_path)
-            and not orig.startswith("RESUME")):
+    start = start_in_original(src)
+    note = resume_note(src)
+    if not start or not note:
         return src, sd_pos, back             # fall back to working from the RESUME file
-    n, body_start = int(m.group(1)), mk + len(RESUME_MARK)
-    if sd_pos <= body_start:
+    orig_path = os.path.join(GCODES, start[0])
+    body = note[2]
+    if sd_pos <= body:
         say("It stopped while the last resume was still getting ready; resuming from the same point.")
-        return orig_path, n, 0.0
-    return orig_path, n + (sd_pos - body_start), back
+        return orig_path, start[1], 0.0
+    return orig_path, start[1] + (sd_pos - body), back
+
+
+def furthest_resume_point(base):
+    """Of all RESUME files for this print, the furthest point any began from.
+    A resume that went wrong didn't grow the print, so where it *began* is
+    still real progress; a bad 'redo' that went backwards never wins."""
+    best, rows = None, []
+    for f in sorted(os.listdir(GCODES)):
+        if not (f.startswith("RESUME") and base_name(f) == base):
+            continue
+        st = start_in_original(os.path.join(GCODES, f))
+        if st and st[0] == base:
+            rows.append((os.path.getmtime(os.path.join(GCODES, f)), f, st[1]))
+            if best is None or st[1] > best[1]:
+                best = (f, st[1])
+    return best, sorted(rows)
 
 
 def do_resume(snap, log_text, ask=False, start=0, autostart=True):
@@ -1086,19 +1138,21 @@ def main():
         i = text.rfind("Starting SD card print")
         text = text[i:] if i >= 0 else text
         if redo:
-            # The last resume printed rubbish: go back to where it started.
-            src = os.path.join(GCODES, snap.get("filename") or "")
-            m = None
-            if snap.get("filename", "").startswith("RESUME") and os.path.exists(src):
-                with open(src, "rb") as f:
-                    m = re.search(rb"resumed at byte (\d+)", f.read(200000))
-            if not m:
-                print("The last print wasn't a resume, so there's nothing to redo.")
+            # The last resume printed rubbish: go back to the furthest point the
+            # print really reached (where the latest good-faith resume began).
+            base = base_name(snap.get("original") or snap.get("filename"))
+            best, rows = furthest_resume_point(base)
+            if not best:
+                print("No resume files found for %s, so there's nothing to redo." % base)
                 sys.exit(1)
-            snap = dict(snap, filename=base_name(snap.get("original") or snap["filename"]),
-                        state="paused", file_position=int(m.group(1)))   # exact point, no backing up
-            snap["original"] = snap["filename"]
-            print("Redoing from where the last resume started (byte %s of %s)." % (m.group(1), snap["filename"]))
+            size = os.path.getsize(os.path.join(GCODES, base))
+            print("Resume files for %s:" % base)
+            for t, f, off in rows:
+                print("  %s  %-14s starts %5.1f%% through the print%s" % (
+                    time.strftime("%d %b %H:%M", time.localtime(t)), f.split("-")[0], 100.0 * off / size,
+                    "   <- furthest, using this" if f == best[0] else ""))
+            snap = dict(snap, filename=base, original=base, state="paused",
+                        file_position=best[1])       # exact point, no backing up
         if touch:
             src = os.path.join(GCODES, snap["filename"])
             if snap.get("state") == "paused":
@@ -1110,6 +1164,14 @@ def main():
             _, _, rs = build_resume(src2, pos2, back2, snap)
             origin = snap.get("homing_origin") or [0, 0, 0, 0]
             top = top_under_nozzle(rs)
+            pct = 100.0 * pos2 / max(1, os.path.getsize(src2))
+            print()
+            print("It will continue from about %.0f%% through the print, printing the layer at Z=%.2fmm."
+                  % (pct, rs.layer_z if rs.layer_z is not None else rs.pos["Z"]))
+            print("Check: is the print on the bed about %.1fmm tall (%.1fcm)? Measure if you can." % (top, top / 10))
+            if not input("Carry on? [y/N] ").strip().lower().startswith("y"):
+                print("Stopped. Nothing moved.")
+                sys.exit(0)
             print("Touching off where the print continues: the plastic there should be at Z=%.2f." % top)
             z_now = touch_off(rs.pos["X"], rs.pos["Y"], top, origin[2],
                               snap.get("extruder_target") or rs.hot or 200,
