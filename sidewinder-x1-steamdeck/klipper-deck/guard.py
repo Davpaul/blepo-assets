@@ -408,8 +408,8 @@ def touch_off(x, y, top_z, zoff, hot, bed):
     print("Step 2: heating (bed %d, nozzle %d). This can take a few minutes..." % (bed, hot))
     gcode_wait("M140 S%d\nM104 S%d" % (bed, hot))
     if bed:
-        gcode_wait("M190 S%d" % bed)
-    gcode_wait("M109 S%d" % hot)
+        gcode_wait("TEMPERATURE_WAIT SENSOR=heater_bed MINIMUM=%d" % (bed - 2))
+    gcode_wait("TEMPERATURE_WAIT SENSOR=extruder MINIMUM=%d" % (hot - 3))
     print("""
 Step 3: put a sheet of plain paper on top of the print, under the nozzle.
 Lower the nozzle until the paper just drags when you slide it.
@@ -737,9 +737,12 @@ def build_resume(gcode_path, sd_pos, back_seconds, snap=None):
     add("M140 S%.0f" % bed)
     add("M104 S%.0f" % min(hot, 140))           # warm while the bed heats, without oozing much
     add("SET_KINEMATIC_POSITION X=0 Y=0 Z=%.3f SET_HOMED=Z" % zphys)
+    # Wait until close to temperature, not until perfectly settled: a heater
+    # that wobbles a few degrees would otherwise make M109/M190 wait forever.
+    add("M104 S%.0f" % hot)
     if bed:
-        add("M190 S%.0f" % bed)
-    add("M109 S%.0f" % hot)                      # fully melted before any movement
+        add("TEMPERATURE_WAIT SENSOR=heater_bed MINIMUM=%.0f" % (bed - 2))
+    add("TEMPERATURE_WAIT SENSOR=extruder MINIMUM=%.0f" % (hot - 3))   # melted before any movement
     add("M83")
     add("G1 E-1.5 F1800")                        # pull back the ooze straight away
     add("G91")
