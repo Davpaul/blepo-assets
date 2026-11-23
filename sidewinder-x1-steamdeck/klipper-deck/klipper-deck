@@ -59,11 +59,19 @@ need_image() {
     fi
 }
 
+guard_running() { pgrep -f "guard.py run" >/dev/null 2>&1; }
+
 cmd_start() {
     need_image
-    if is_running; then
-        echo "Already running. Open $(url)"
+    if guard_running; then
+        echo "Already running in another window. Open $(url)"
+        echo "To restart: klipper-deck stop, then start again."
         exit 0
+    fi
+    if is_running; then
+        # Left over from a closed window: nothing is watching it, so restart cleanly
+        echo "Cleaning up a Klipper left running from a closed window..."
+        podman rm -f "$NAME" >/dev/null 2>&1
     fi
     [ -f "$LIB/guard.py" ] || { echo "guard.py missing. Re-run install.sh from the kit folder."; exit 1; }
     mkdir -p "$DATA"
@@ -100,7 +108,13 @@ cmd_autoresume() {
 }
 
 cmd_stop() {
-    if is_running; then podman stop -t 10 "$NAME" >/dev/null && echo "Stopped."; else echo "Not running."; fi
+    local did=""
+    if guard_running; then
+        pkill -TERM -f "guard.py run"; did=1
+        for _ in $(seq 1 15); do guard_running || break; sleep 1; done
+    fi
+    if is_running; then podman rm -f "$NAME" >/dev/null 2>&1; did=1; fi
+    [ -n "$did" ] && echo "Stopped." || echo "Not running."
 }
 
 cmd_flash() {
