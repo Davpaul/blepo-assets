@@ -48,7 +48,15 @@ GCODES = os.path.join(DATA, "gcodes")
 SNAP = os.path.join(STATE_DIR, "resume-state.json")
 
 POLL = float(os.environ.get("KD_POLL", "2"))
-MAX_ATTEMPTS = 3           # auto-resumes per print
+def _max_attempts():
+    try:
+        with open(os.path.join(CONF_DIR, "max-resumes")) as f:
+            return max(0, int(f.read().strip()))
+    except (OSError, ValueError):
+        return 6
+
+
+MAX_ATTEMPTS = _max_attempts()   # auto-resumes per print
 MAX_OUTAGE = float(os.environ.get("KD_MAX_OUTAGE", 5 * 60))   # bed is cooling: don't wait forever
 STEP_WAIT = float(os.environ.get("KD_STEP_WAIT", "8"))        # wait between USB recovery steps
 EXTRA_BACKUP = 1.0         # seconds re-printed on top of Klipper's buffer, to avoid a gap
@@ -75,13 +83,64 @@ def auto_enabled():
         return True
 
 
-def find_printer():
+PRINTER_ID = os.path.join(STATE_DIR, "printer-usb-id")
+
+
+def dev_usb_id(dev):
+    """USB vendor:product (e.g. 1a86:7523 for the X1 board) of a serial device, or None."""
+    try:
+        p = os.path.realpath(os.path.join(SYS_TTY, os.path.basename(dev), "device"))
+    except OSError:
+        return None
+    for _ in range(8):
+        v, d = os.path.join(p, "idVendor"), os.path.join(p, "idProduct")
+        if os.path.exists(v) and os.path.exists(d):
+            try:
+                return "%s:%s" % (open(v).read().strip(), open(d).read().strip())
+            except OSError:
+                return None
+        p = os.path.dirname(p)
+    return None
+
+
+def saved_printer_id():
+    try:
+        with open(PRINTER_ID) as f:
+            return f.read().strip() or None
+    except OSError:
+        return None
+
+
+def find_printer(remember=False):
+    """Find the printer's serial port. Once we know its USB id, only that device
+    counts: other gadgets on the dock (e.g. a /dev/ttyACM0) are ignored."""
     import glob
+    want = saved_printer_id()
+    seen, cands = set(), []
     for pattern in DEV_GLOBS:
         for d in sorted(glob.glob(pattern)):
-            if os.path.exists(d):
-                return os.path.realpath(d)
-    return None
+            r = os.path.realpath(d)
+            if os.path.exists(r) and r not in seen:
+                seen.add(r)
+                cands.append(r)
+    if want:
+        for r in cands:
+            i = dev_usb_id(r)
+            if i == want or i is None:
+                return r
+        return None
+    # First time: prefer the X1's CH340 chip, then any ttyUSB, then anything
+    def rank(r):
+        i = dev_usb_id(r) or ""
+        return (0 if i.startswith("1a86:") else 1 if "ttyUSB" in r else 2)
+    cands.sort(key=rank)
+    if cands and remember:
+        i = dev_usb_id(cands[0])
+        if i:
+            os.makedirs(STATE_DIR, exist_ok=True)
+            with open(PRINTER_ID, "w") as f:
+                f.write(i)
+    return cands[0] if cands else None
 
 
 def usb_topology(dev):
@@ -175,6 +234,34 @@ def notify_conf():
         return None
 
 
+_outbox = []          # alerts that couldn't be sent yet: (time, body, server)
+
+
+def flush_alerts():
+    """Retry alerts that failed (e.g. the network dropped with the dock)."""
+    while _outbox:
+        t, body, server = _outbox[0]
+        if time.time() - t > 3 * 3600:
+            _outbox.pop(0)
+            continue
+        late = dict(body)
+        late["message"] = "(sent late, happened %s) %s" % (time.strftime("%H:%M", time.localtime(t)),
+                                                         body["message"])
+        if not _post_alert(late, server):
+            return
+        _outbox.pop(0)
+
+
+def _post_alert(body, server):
+    try:
+        req = urllib.request.Request(server, data=json.dumps(body).encode(), method="POST",
+                                     headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=8).read()
+        return True
+    except Exception:
+        return False
+
+
 def notify(title, message, priority=3, tags=None, buttons=("open",)):
     """Send a phone alert through ntfy. Buttons: open, pause, resume, cancel (max 3)."""
     c = notify_conf()
@@ -194,15 +281,12 @@ def notify(title, message, priority=3, tags=None, buttons=("open",)):
             "priority": priority, "tags": list(tags or []), "actions": acts}
     if base:
         body["click"] = base
-    try:
-        req = urllib.request.Request(c.get("server", "https://ntfy.sh").rstrip("/"),
-                                     data=json.dumps(body).encode(), method="POST",
-                                     headers={"Content-Type": "application/json"})
-        urllib.request.urlopen(req, timeout=8).read()
+    server = c.get("server", "https://ntfy.sh").rstrip("/")
+    if _post_alert(body, server):
         return True
-    except Exception as e:
-        say("Phone alert failed: %s" % e)
-        return False
+    say("Phone alert couldn't be sent (no network?); will retry when it's back.")
+    _outbox.append((time.time(), body, server))
+    return False
 
 
 def tailscale_ip():
@@ -724,12 +808,12 @@ def run():
         signal.signal(s, handler)
 
     os.makedirs(STATE_DIR, exist_ok=True)
-    dev = find_printer()
+    dev = find_printer(remember=True)
     if not dev:
         say("No printer found yet. Plug it in by USB and switch it on; waiting...")
         while not dev and not stop["flag"]:
             time.sleep(2)
-            dev = find_printer()
+            dev = find_printer(remember=True)
     if stop["flag"]:
         return
     say("Printer found on %s. Starting Klipper..." % dev)
@@ -746,6 +830,8 @@ def run():
     try:
         while not stop["flag"]:
             time.sleep(POLL)
+            if _outbox:
+                flush_alerts()
             try:
                 st = query_status()
                 state = st["print_stats"].get("state")

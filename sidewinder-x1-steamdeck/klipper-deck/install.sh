@@ -48,9 +48,18 @@ sudo install -d -m 755 /etc/klipper-deck
 sudo install -m 755 -o root -g root "$KIT/usb-reset" /etc/klipper-deck/usb-reset
 echo "$U ALL=(root) NOPASSWD: /etc/klipper-deck/usb-reset" > /tmp/klipper-deck-sudoers
 if sudo visudo -cf /tmp/klipper-deck-sudoers >/dev/null; then
-    sudo install -m 440 -o root -g root /tmp/klipper-deck-sudoers /etc/sudoers.d/klipper-deck
+    # "zz-" so it's read last: SteamOS's own wheel rule would otherwise override it
+    sudo rm -f /etc/sudoers.d/klipper-deck
+    sudo install -m 440 -o root -g root /tmp/klipper-deck-sudoers /etc/sudoers.d/zz-klipper-deck
 fi
 rm -f /tmp/klipper-deck-sudoers
+sudo -k
+if sudo -n /etc/klipper-deck/usb-reset 2>&1 | grep -q usage; then
+    echo "Software dock reset: works without a password. Good."
+else
+    echo "WARNING: software dock reset still needs a password. Send Claude a photo of this:"
+    sudo -n -l 2>&1 | tail -5
+fi
 # SteamOS can have firewalld running, which blocks other devices from reaching the web page
 if command -v firewall-cmd >/dev/null && sudo firewall-cmd --state >/dev/null 2>&1; then
     sudo firewall-cmd -q --permanent --add-service=http
