@@ -45,7 +45,7 @@ def corner_bracket():
     for (x, y) in ((fx, fy), (kx, ky)):
         cuts.append(cyl(x, y, -1, T + 1, G.CLEAR_M5 / 2))
         cuts.append(hexprism(x, y, -1, HEX_POCKET, G.HEX_M5_AF))
-    # M6 bolts (wing nuts into T-nuts in the board), or wood screws with washers
+    # M6 studs (bolts up through T-nuts in the board) with hold_down_knobs, or wood screws with washers
     for (x, y) in ((24, 24), (62, 9), (9, 62)):
         cuts.append(cyl(x, y, -1, T + 1, 3.25))
     # reel motor (N20): gearbox face sits in a pocket under the plate, shaft comes up through
@@ -111,6 +111,19 @@ def f_sleeve():      # the zip-tied belt loop turns on this
 
 def k_spacer():      # lifts the 625 pinch bearing to belt height; lip touches the inner race only
     return union(cyl(0, 0, 0, 9, 5), cyl(0, 0, 9, 9.5, 3.7)) - cyl(0, 0, -1, 11, G.CLEAR_M5 / 2)
+
+
+def hold_down_knob():
+    """Chunky lobed knob with an M6 nut pressed into its base. Screws down onto the
+    stud that holds a corner unit to the table. Replaces a wing nut and penny washer."""
+    import math
+    H, core_r, lobe_r, lobe_at = 22.0, 13.0, 5.0, 13.0
+    body = union(cyl(0, 0, 0, H, core_r),
+                 *[cyl(lobe_at * math.cos(math.radians(60 * i)), lobe_at * math.sin(math.radians(60 * i)), 0, H, lobe_r, seg=40) for i in range(6)])
+    body = body ^ cyl(0, 0, 0, H, 22.0, 15.5)                      # tapers towards the top, so it prints without supports
+    body -= hexprism(0, 0, -1, 5.2, 10.25)                          # M6 nut, pressed in from below
+    body -= cyl(0, 0, -1, H - 3, 3.25)                              # clearance for the stud, closed on top
+    return body
 
 
 def riser_shim():    # goes under a bracket when the workpiece sits on top of the base board
@@ -316,6 +329,7 @@ PARTS = {
     "f_spacer":         (f_spacer,         4, (0, 0, 0),   ""),
     "f_sleeve":         (f_sleeve,         4, (0, 0, 0),   ""),
     "k_spacer":         (k_spacer,         4, (0, 0, 0),   "lip up"),
+    "hold_down_knob":   (hold_down_knob,  12, (0, 0, 0),   "flat face down; press an M6 nut into the hex pocket"),
     "riser_shim":       (riser_shim,       0, (0, 0, 0),   "optional, print as needed"),
     "measuring_cap":    (measuring_cap,    2, (0, 0, 0),   ""),
     "sled_base":        (sled_base,        1, (0, 0, 0),   "underside on the bed"),

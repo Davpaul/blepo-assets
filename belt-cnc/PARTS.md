@@ -49,7 +49,7 @@ Print everything first (see BUILD.md step 1), then strip it. I have not seen you
 | GT2 belt, 6mm wide, fibreglass core, open length | 25m | £18 |
 | GT2 20-tooth pulley, 5mm bore, 6mm belt | 2 (buy a pack of 5) | £5 |
 | GT2 smooth idler (no teeth), 5mm bore, 6mm belt, 12mm barrel | 4 (buy 5) | £5 |
-| 625ZZ bearings (5 x 16 x 5mm) | 4 (pack of 10) | £4 |
+| 625ZZ bearings (5 x 16 x 5mm) | 4 (pack of 10) | £4 (or print `pinch_roller`) |
 | Small zip ties, 2.5mm | pack | £2 |
 
 ### Z axis
@@ -57,7 +57,7 @@ Print everything first (see BUILD.md step 1), then strip it. I have not seen you
 | Item | Qty | Est. |
 |---|---|---|
 | Smooth steel rod, 8mm x 150mm | 2 | £6 |
-| LM8UU linear bearings | 4 | £4 |
+| LM8UU linear bearings | 4 | £4 (or print `z_bushing`) |
 | Optional: T8 lead screw, 2mm lead, 150mm, with nut | 1 | £6 |
 
 ### Fixings
@@ -76,7 +76,7 @@ Print everything first (see BUILD.md step 1), then strip it. I have not seen you
 | M3 x 10 cap screws + M3 nuts | 4 + 4 | Lead screw nut |
 | M3 x 12 pan-head screws | 30 | Self-tapped into plastic: guides, bearings, rods, lid |
 | M2 x 10 self-tapping screws | 2 | Z switch |
-| M6 x 40 bolts, wing nuts, penny washers, M6 T-nuts | 12 each | Corner brackets, quick release. Wood screws with washers also work. |
+| M6 x 40 bolts, M6 nuts, M6 T-nuts | 12 each | Corner studs. The nuts press into the printed hold-down knobs. Wood screws with washers also work. |
 
 An M3 and M5 assortment box covers all of this for about £12.
 
@@ -128,6 +128,7 @@ All STL files are in `stl/`, already turned the right way up for printing. None 
 | `thumb_knob.stl` | 4 | Push an M5 hex bolt head into each. |
 | `laser_caddy.stl` | 1 | Only if you fit a laser. |
 | `laser_shim.stl` | as needed | Packing for laser modules under 40mm square. |
+| `hold_down_knob` | 12 | On the printed-extras plate, with `z_bushing`, `pinch_roller` and `belt_clip`. Source in `scad/`, G-code in `print/gcode/`. |
 | `riser_shim.stl` | as needed | 6mm lifts for a corner unit, see BUILD.md step 7. |
 | `electronics_tray.stl`, `electronics_lid.stl` | 1 each | 225 x 155mm. |
 

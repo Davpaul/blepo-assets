@@ -124,7 +124,7 @@ def hardware_page():
             "except countersunk screws, which are measured overall.")
     groups = [("Small screws", [("m3x8", 20), ("m3x10", 4), ("m3x12", 34), ("m2x10", 2), ("m3nut", 4)]),
               ("Bolts", [("m5x25", 4), ("m5x30", 6), ("m5x40", 4), ("m5csk", 4), ("m6x40", 12)]),
-              ("Nuts and washers", [("m5nyl", 12), ("m5nut", 2), ("m5wash", 4), ("m6wash", 12), ("wing", 12), ("tnut", 12)]),
+              ("Nuts and washers", [("m5nyl", 12), ("m5nut", 2), ("m5wash", 4), ("m6nut", 12), ("tnut", 12)]),
               ("Bearings and drive parts", [("625", 4), ("lm8uu", 4), ("pulley", 4), ("idler", 4), ("tnutT8", 1), ("coupler", 1)]),
               ("Z axis shafts", [("rod", 2), ("screw", 1)]),
               ("Electrical parts", [("n20", 4), ("switch", 1), ("res", 2), ("rj45", 10), ("wago", 6)]),
@@ -163,6 +163,8 @@ def printing():
            ["Walls", "4 (5 for `corner_bracket` and `z_carriage`)"], ["Infill", "40% (50% for `corner_bracket` and `z_carriage`)"], ["Supports", "None"], ["Fan", "30 to 50%"]], [30, 70])
     p("**The quick way:** the `print` folder has OrcaSlicer presets for your X1 and nine ready-made plates, every part already turned the right way up. "
       "Import the presets, open each plate, pick the preset its name says, print. The full set takes **about 126 hours**. `print/README.md` has the list, times and order.")
+    p("**Printed extras:** one more plate holds the 12 hold-down knobs, plus printed replacements for the Z bearings, pinch bearings and belt-end zip ties. "
+      "It takes about **15 hours** and **210g**. Ready-to-print G-code for your X1 is in `print/gcode`, and the OpenSCAD source is in `scad`.")
     h2("What to print")
     table([["File", "Qty", "Notes"],
            ["`corner_bracket`", "4", "142 x 176mm. Top face on the bed, fence walls and plug panel pointing up."],
@@ -215,6 +217,7 @@ def corner():
          dyk="The belt's end loop sits on this sleeve. The sleeve turns so the loop can swing round as the sled moves, which keeps the belt length exact.")
     step("Build the pinch post", ["On the bolt beside the motor, slide `k_spacer` with its **small lip upward**.", "Add a 625 bearing, then a nyloc nut with **no washer**.", "Tighten until snug. The outside of the bearing must spin."],
          "c04_pinch.png", [("625", 1), ("m5nyl", 1)], parts=["k_spacer"],
+         tip="A printed `pinch_roller` can replace the 625 bearing. It is the same size. Tighten its nut only until the roller still spins freely.",
          warn="No washer here. A washer would rub on the part of the bearing that turns. The spacer's lip is there for the same reason: only the centre of the bearing is clamped.")
     step("Fit the pulley", ["Push a 20-tooth pulley onto the motor shaft with its grub screws at the bottom.", "Leave a gap under it the thickness of a business card.",
                              "Its teeth should be level with the bearing. Tighten one grub screw onto the flat of the shaft, then the other."],
@@ -252,7 +255,8 @@ def sled_section():
     step("Prepare the carriage", ["Press two **LM8UU** bearings into each side tube of `z_carriage`, from the top.", "Nip each bearing with an **M3 x 12** screw in the small hole in the side of the tube. Just snug.",
                                    "Sit the brass nut on the flat tab at the back, flange on top. Fix it with four **M3 x 10** screws and nuts."],
          "s02_carriage.png", [("lm8uu", 4), ("tnutT8", 1), ("m3x10", 4), ("m3nut", 4), ("m3x12", 4)], parts=["z_carriage"],
-         warn="Do not crush the bearings. If a pinch screw is too tight the carriage will bind on the rods. Back it off until the carriage glides.")
+         warn="Do not crush the bearings. If a pinch screw is too tight the carriage will bind on the rods. Back it off until the carriage glides.",
+         tip="Printed `z_bushing` parts are the same size as LM8UU bearings and press in the same way. Add a drop of light oil to each rod.")
     step("Stand up the rods", ["Push the two 8mm rods into the tall sockets on the base, all the way down.", "Lock each with an **M3 x 12** screw in the side of its socket."],
          "s03_rods.png", [("rod", 2), ("m3x12", 2)])
     step("Slide the carriage on", ["Lower the carriage onto the rods. The clamp slot faces the **front**, the brass nut faces the **back**.", "Slide it up and down by hand."],
@@ -348,10 +352,13 @@ def table_setup():
     add(box("tip", "The sled needs support under at least half its base. Along an unsupported edge, plan on a 60mm border, or lay offcuts of the same thickness alongside."))
     step("Fit the mounting studs", ["Hold a corner unit on its corner with both fence walls pushed hard against the edges. Mark through its three holes.", "Drill the three marks **8mm**, right through.",
                                     "From underneath, hammer an M6 T-nut into each hole.", "Screw an **M6 x 40** bolt up through each T-nut from below until it is tight. Each now sticks up as a stud."],
-         "t01_mount.png", [("tnut", 3), ("m6x40", 3), ("m6wash", 3), ("wing", 3)],
+         "t01_mount.png", [("tnut", 3), ("m6x40", 3), ("m6nut", 3)],
          tip="For a one-off sheet you will not use again, skip the studs and drive three wood screws with washers through the holes instead.")
-    step("Bolt the units on", ["Drop each corner unit over its three studs, fence walls hard against the corner.", "Add a penny washer and a wing nut to each stud. Finger tight is enough."], "t01_mount.png",
-         dyk="The fence does the hard work. The belts pull the unit towards the sheet, straight into the fence, so the wing nuts only have to hold it down.")
+    step("Bolt the units on", ["Press an M6 nut into the hex pocket under each `hold_down_knob`. A few taps with a hammer, or squeeze it in a vice.",
+                               "Drop each corner unit over its three studs, fence walls hard against the corner.",
+                               "Screw a knob onto each stud. Hand tight is enough."], "t01_mount.png", parts=["hold_down_knob x 3"],
+         dyk="The fence does the hard work. The belts pull the unit towards the sheet, straight into the fence, so the knobs only have to hold it down.",
+         tip="Print the knobs in a different colour for each corner and you will never put a unit back on the wrong corner.")
     step("Measure the table", ["Put a `measuring_cap` on two belt-end posts. Hook the tape on the flat face of one and read at the flat face of the other.",
                                "Measure five distances, to the millimetre: **S** (SW to SE), **E** (SE to NE), **N** (NW to NE), **W** (SW to NW), and the diagonal **D** (NW to SE).",
                                "Run `python3 tools/beltcnc.py table S E N W D --write belt-cnc.yaml` with your five numbers.", "Upload the settings again (section 6, last step)."],
@@ -365,7 +372,7 @@ def table_setup():
 def belts():
     section("8. Fit the belts")
     step("Make up four belts", ["Cut four belts. For a full sheet each is **5.6m**. The table tool prints the length for your table.",
-                                "At one end, fold 40mm back on itself with the teeth meshed and bind it with two small zip ties. This loop slips over an `f_sleeve`.",
+                                "At one end, fold 40mm back on itself with the teeth meshed, push the doubled belt through a `belt_clip` and tighten its M3 x 12 screw. (Two small zip ties also work.) The loop left beyond the clip slips over an `f_sleeve`.",
                                 "At the other end, fold 10mm over and bind it with one zip tie. This end slides down into the slot in the reel hub."], None, [("belt", 0), ("ziptie", 0)],
          dyk="Each belt runs out to the sled and back, like the rope in a pulley block. That halves the pull each motor has to give and doubles the stiffness, which is why it needs twice the belt.")
     step("Thread each corner", ["Loop over the belt-end post.", "Out round the sled idler, with the **smooth side against the idler**.", "Back to the pulley on the post side, round the outside of the pulley with the **teeth against it**.",
@@ -391,7 +398,7 @@ def first_run():
     step("Home the Z axis", "Type `homez`. The router rises until the switch clicks. If it goes down instead, the Z motor is reversed: change it in the settings file the same way as a corner motor.", None)
     h2("Packing away")
     step("Wind the belts in", ["Park the sled on the centre mark and raise Z.", "Type `pack` and unhook the belts when asked. Each corner winds its belt onto its reel, leaving about 150mm out.",
-                               "Type `off`, switch off at the wall, unplug the five leads, undo the wing nuts and lift the units off."], None)
+                               "Type `off`, switch off at the wall, unplug the five leads, unscrew the knobs and lift the units off."], None)
     step("Setting up again", ["Bolt each unit back on its own corner, plug in, stand the sled on the centre mark and switch on.", "Type `stowed`, then `unpack`. Each belt pays out to the length it needs.",
                               "Hook the belts on, then snug and test as above."], None,
          dyk="`stowed` moves nothing. It only tells the controller that the belts are wound in, so that `unpack` knows how much to pay out.")

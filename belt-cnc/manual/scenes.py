@@ -334,8 +334,7 @@ def table_scenes():
         s.add(stud(x, y), "hw", explode=(0, 0, -60), label="T-nut hammered in from below,\nM6 x 40 bolt screwed up through it" if i == 1 else None, lab=(110, 70))
     s.add(corner_solid(), "new", explode=(-0, -0, 75), label="corner unit: push both fence walls\nhard against the corner", lab=(-60, -110))
     for i, (x, y) in enumerate(holes):
-        s.add(H.washer(25, 6.4, 1.5).translate((x, y, T)), "steel", explode=(0, 0, 135), guide=False, label="penny washer" if i == 1 else None, lab=(110, 0))
-        s.add(H.wing_nut().translate((x, y, T + 1.5)), "hw", explode=(0, 0, 160), label="wing nut" if i == 1 else None, lab=(110, -20))
+        s.add(P.hold_down_knob().translate((x, y, T)), "new2", explode=(0, 0, 150), label="hold_down_knob,\nM6 nut pressed in underneath" if i == 1 else None, lab=(110, -30))
 
     # whole machine
     W, Hh = 2440.0, 1220.0

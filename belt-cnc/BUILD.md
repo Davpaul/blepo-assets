@@ -131,7 +131,7 @@ In either setup the sled needs support under at least half its base. Along an un
 
 To check any other size before committing: `python3 tools/simulate.py --width 1200 --height 800`.
 
-**Fitting a unit:** push the two fence walls hard against both edges of the corner. For a board you will reuse, mark the three holes, drill 8mm, and hammer **M6 T-nuts** in from underneath. Screw an M6 x 40 bolt up through each T-nut from below so it sticks up as a stud. Drop the unit over the studs and hold it with penny washers and wing nuts, so it comes off in seconds. For a one-off sheet, three wood screws with washers do the job.
+**Fitting a unit:** push the two fence walls hard against both edges of the corner. For a board you will reuse, mark the three holes, drill 8mm, and hammer **M6 T-nuts** in from underneath. Screw an M6 x 40 bolt up through each T-nut from below so it sticks up as a stud. Press an M6 nut into each printed `hold_down_knob`, drop the unit over the studs and screw on the knobs, so it comes off in seconds. For a one-off sheet, three wood screws with washers do the job.
 
 **Measuring:**
 
@@ -149,7 +149,7 @@ To check any other size before committing: `python3 tools/simulate.py --width 12
 ![Belt path](renders/belt_path.png)
 
 1. Cut four belts. For a full sheet each is 5.6m. `table_config.py` prints the length for your table.
-2. At one end of each, fold 40mm back on itself, teeth meshed, and fix with two small zip ties to make a loop that slips over an `f_sleeve`. Fold 10mm over at the other end with one zip tie, and slide that end down into the slot in the reel hub.
+2. At one end of each, fold 40mm back on itself, teeth meshed, and fix with a printed `belt_clip` (or two small zip ties) to make a loop that slips over an `f_sleeve`. Fold 10mm over at the other end with one zip tie, and slide that end down into the slot in the reel hub.
 3. Thread each corner as in the picture: loop on the post, out round the sled idler with the **smooth side against the idler**, back to the pulley on the **post side**, round the outside of the pulley with the **teeth against it**, between pulley and pinch bearing, and on to the reel. Wind the spare belt onto the reel by hand for now.
 
 Every belt must be threaded the same way round. If one is mirrored, that corner's length will be wrong and the machine will not position properly.
@@ -176,7 +176,7 @@ Do steps 2 to 5 each time you set the machine up. They take a few minutes.
 **Packing away**
 1. Park the sled on the centre mark and raise Z.
 2. Type `pack`. Unhook the belts when asked. Each corner winds its belt onto its reel, leaving about 150mm out.
-3. Type `off`, switch off at the wall, unplug the five leads, undo the wing nuts and lift the corner units off.
+3. Type `off`, switch off at the wall, unplug the five leads, unscrew the knobs and lift the corner units off.
 
 **Setting up again**
 1. Bolt the corner units back on the same corners (label them), plug in, stand the sled on the centre mark and switch on.

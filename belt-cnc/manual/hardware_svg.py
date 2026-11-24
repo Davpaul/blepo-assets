@@ -143,6 +143,7 @@ HW = {
     "m3nut":   ("M3 nut",) + nut(5.5, 2.4),
     "m5nut":   ("M5 plain nut",) + nut(8, 4),
     "m5nyl":   ("M5 nyloc nut (blue ring)",) + nut(8, 5, True),
+    "m6nut":   ("M6 nut (goes inside a knob)",) + nut(10, 5),
     "m5wash":  ("M5 washer",) + washer(10, 5.3),
     "m6wash":  ("M6 penny washer",) + washer(25, 6.4),
     "wing":    ("M6 wing nut",) + wingnut(),

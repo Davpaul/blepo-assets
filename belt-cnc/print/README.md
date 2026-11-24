@@ -30,11 +30,12 @@ Open each `.3mf` in `plates/`, choose the process preset its name says, slice, p
 | `07_standard_tools` | standard | dust shoe, pen holder and slider, laser holder, 4 knobs, 2 laser shims | 26h 30m | 344g |
 | `08_standard_tray` | standard | electronics tray | 10h 40m | 187g |
 | `09_standard_lid` | standard | electronics lid | 5h 05m | 88g |
-| **Total** | | | **about 126 hours** | **about 1.8kg** |
+| `10_printed_extras` | see below | 12 hold-down knobs, 4 Z bushings, 4 pinch rollers, 4 belt-end clips | 15h 10m | 208g |
+| **Total** | | | **about 141 hours** | **about 2kg** |
 
 Times come from slicing each plate with your machine's settings in PrusaSlicer (which shares its slicing engine with OrcaSlicer). Expect OrcaSlicer's own estimate to land within about 15% of these. Klipper usually prints a little faster than either estimate.
 
-**Filament:** buy 3kg. The full set needs about 1.8kg, and 2kg leaves almost nothing for a failed print.
+**Filament:** buy 3kg. The full set needs about 2kg including the printed extras.
 
 ## Suggested order
 
@@ -60,3 +61,20 @@ Times come from slicing each plate with your machine's settings in PrusaSlicer (
 ## Rebuilding the plates
 
 If you change a part in `cad/`, run `python3 cad/build.py` and then `python3 print/make_plates.py`.
+
+## Plate 10: printed extras, ready-to-print G-code
+
+`gcode/10_printed_extras_x1_petg_klipper.gcode` is sliced already, for your Sidewinder X1 on Klipper with PETG, using your own start and end code. Upload it to Klipper and print. No slicer needed.
+
+| Part | Qty | Replaces |
+|---|---|---|
+| `hold_down_knob` | 12 | Wing nuts and penny washers. Press an M6 nut into the hex pocket underneath. |
+| `z_bushing` | 4 | LM8UU linear bearings in the Z carriage. Same size, press in the same way. Oil the rods lightly. |
+| `pinch_roller` | 4 | The 625 bearings on the pinch posts. Same size. Tighten the nut only until it still spins. |
+| `belt_clip` | 4 | The zip ties on each belt's end loop. Pinch with an M3 x 12 screw. |
+
+Settings used: 0.2mm layers, 5 walls, 6 top / 5 bottom layers, 50% cubic infill, 235°C (240°C first layer), bed 80°C, your speeds and acceleration. About 15 hours and 208g.
+
+The OpenSCAD source for all four parts, and for this plate (`plate_printed_extras.scad`), is in `../scad/`. Every size that matters is a named number at the top of each file, so you can adjust a fit (the bushing bore, say) and re-export. `gcode/x1_petg_klipper_prusaslicer.ini` holds the exact settings used, if you want to re-slice in PrusaSlicer; in OrcaSlicer, use the strong preset.
+
+**Test before trusting:** the printed bushings and rollers are worth trying on your first corner unit and carriage before you leave the metal bearings out altogether. If the bushings bind, open the bore up a little in `z_bushing.scad` (`bore_d`).
