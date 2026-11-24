@@ -1,7 +1,7 @@
 // Twist animatronic: small printable parts that replace bought hardware.
 // Everything is a module with parameters at the top. All dimensions in mm.
 // Render one part:   openscad -o out.stl -D 'part="washer_m5"' small_parts.scad
-// Parts: washer_m5, wingnut_m6, standoff_m25, sheath_clip, gt2_pulley_20t
+// Parts: washer_m5, knob_m6, standoff_m25, sheath_clip, gt2_pulley_20t
 $fn = 96;
 
 part = "plate";     // "plate" prints everything below on one 300 x 300 mm bed
@@ -17,23 +17,24 @@ module washer_m5(od = 10, id = 5.5, t = 1.2) {
   difference() { cylinder(d = od, h = t); translate([0, 0, -1]) cylinder(d = id + fit, h = t + 2); }
 }
 
-// ---------- M6 wing nut: printed wings round a captive plain M6 nut ----------
-// Press a normal M6 nut into the hex pocket from the flat side. Two wings give the grip.
-module wingnut_m6() {
-  h = 11; r = 8.2;
+// ---------- M6 knob: scalloped round grip round a captive plain M6 nut, cross slot on top ----------
+// Press a normal M6 nut into the hex pocket from the flat side. The bolt end goes into a blind hole,
+// so the top stays closed and carries the cross slot (takes a Phillips or a flat screwdriver).
+bolt_room = 9;   // how far the bolt may stick out past the nut before it touches the top
+module knob_m6(d = 28, h = 20, lobes = 8) {
+  pocket = nut_m6_t + 0.4;
   difference() {
     union() {
-      cylinder(r = r, h = h);
-      // wings
-      for (s = [-1, 1]) hull() {
-        translate([s * (r - 2), 0, 0]) cylinder(d = 5, h = h);
-        translate([s * 19, 0, 0]) cylinder(d = 4, h = h + 4);
-      }
+      cylinder(d = d - 5, h = h);
+      // scalloped grip: lobes round the rim, so a hand has something to push on
+      for (i = [0 : lobes - 1]) rotate([0, 0, i * 360 / lobes + 180 / lobes])
+        translate([d / 2 - 3.2, 0, 0]) cylinder(d = 6.4, h = h, $fn = 48);
     }
-    // bolt hole, with a bit of slack for the thread
-    translate([0, 0, -1]) cylinder(d = 6.6, h = h + 6);
-    // hex pocket for the nut, open at the bottom
-    translate([0, 0, -0.01]) cylinder(d = (nut_m6_af + fit) / cos(30), h = nut_m6_t + 0.4, $fn = 6);
+    // scallops between the lobes are the gaps already left by the smaller core
+    translate([0, 0, -0.01]) cylinder(d = (nut_m6_af + fit) / cos(30), h = pocket, $fn = 6);   // nut pocket
+    translate([0, 0, pocket - 0.1]) cylinder(d = 6.6, h = bolt_room + 0.1, $fn = 48);          // blind bolt hole
+    // cross slot, 2.2 wide, 12 long, 3.5 deep
+    for (a = [0, 90]) rotate([0, 0, a]) translate([-6, -1.1, h - 3.5]) cube([12, 2.2, 3.6]);
   }
 }
 
@@ -100,11 +101,11 @@ module grid(n, step, ox, oy, per) {
 if (part == "plate") {
   grid(40, 13, 20, 20, 10) washer_m5();            // 40 M5 washers, 10 x 4
   grid(20, 10, 20, 88, 10) standoff_m25();         // 20 M2.5 standoffs, 10 x 2
-  for (i = [0 : 2]) translate([45, 125 + i * 20, 0]) wingnut_m6();   // 3 wing nuts
+  for (i = [0 : 2]) translate([30 + i * 32, 140, 0]) knob_m6();      // 3 knobs
   grid(4, 22, 130, 128, 4) gt2_pulley_20t();       // 4 GT2 pulleys (only needed for the stepper version)
   grid(8, 38, 40, 190, 4) sheath_clip();           // 8 sheath clips, 4 x 2
 } else if (part == "washer_m5") washer_m5();
-else if (part == "wingnut_m6") wingnut_m6();
+else if (part == "knob_m6") knob_m6();
 else if (part == "standoff_m25") standoff_m25();
 else if (part == "sheath_clip") sheath_clip();
 else if (part == "gt2_pulley_20t") gt2_pulley_20t();

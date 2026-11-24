@@ -93,7 +93,7 @@ All metric. A boxed M3/M4/M5 assortment covers most of this.
 
 ## Printed instead of bought
 
-These are in `print/scad/` (see the README there) and come off the same printer, so you can skip them in the lists above: M5 washers (40), M6 wing nuts (use plain M6 nuts in the printed wings), M2.5 standoffs, the cable ties for the sheaths (printed clips), and GT2 pulleys if you go stepper.
+These are in `print/scad/` (see the README there) and come off the same printer, so you can skip them in the lists above: M5 washers (40), M6 wing nuts (use plain M6 nuts in the printed knobs), M2.5 standoffs, the cable ties for the sheaths (printed clips), and GT2 pulleys if you go stepper.
 
 ## Later: camera and microphone
 
