@@ -91,6 +91,10 @@ All metric. A boxed M3/M4/M5 assortment covers most of this.
 | 4 | Wood screw 3.5 x 20 | Turntable deck down into the yaw hub |
 | 16 | Wood screw 3.5 x 12 | Pipe saddles (4) and pull units (12) to the electronics board |
 
+## Printed instead of bought
+
+These are in `print/scad/` (see the README there) and come off the same printer, so you can skip them in the lists above: M5 washers (40), M6 wing nuts (use plain M6 nuts in the printed wings), M2.5 standoffs, the cable ties for the sheaths (printed clips), and GT2 pulleys if you go stepper.
+
 ## Later: camera and microphone
 
 Nothing to buy now. The design leaves room for them:
