@@ -4,38 +4,41 @@ Everything here is set up for your Artillery Sidewinder X1 on Klipper, with plai
 
 ## 1. Import the presets (once)
 
-In OrcaSlicer: **File > Import > Import Configs...** and pick all four files in `orca/`:
+In OrcaSlicer: **File > Import > Import Configs...** and pick all five files in `orca/`:
 
 | File | What it is |
 |---|---|
 | `machine_artillery_x1_klipper.json` | Your printer (the same one you sent me) |
 | `filament_generic_petg_x1.json` | Your PETG settings (the same one you sent me) |
-| `process_belt_cnc_strong.json` | For the structural parts: 5 walls, 6 top / 5 bottom layers, 50% gyroid |
-| `process_belt_cnc_standard.json` | For everything else: 4 walls, 5 top / 4 bottom layers, 40% gyroid |
+| `process_belt_cnc_strong.json` | Parts that carry the machine's loads: 0.2mm layers, 5 walls, 5 top / 4 bottom, 35% gyroid |
+| `process_belt_cnc_standard.json` | Medium parts: 0.28mm layers, 4 walls, 4 top / 4 bottom, 25% gyroid |
+| `process_belt_cnc_light.json` | Lightly loaded parts: 0.28mm layers, 3 walls, 4 top / 3 bottom, 15% gyroid |
 
-Both process presets use your speeds (45 outer, 70 inner, 80 infill, 1000 accel), supports off, auto brim.
+All three use your speeds (45 outer, 70 inner, 80 infill, 1000 accel), supports off, auto brim. All three also print any small area solid (`minimum_sparse_infill_area` 200mm²), so pegs, bosses and small parts come out solid automatically.
 
 ## 2. Print the plates
 
-Open each `.3mf` in `plates/`, choose the process preset its name says, slice, print. Every part is already turned the right way up and laid out on a 300 x 300 bed. Each part stays a separate object, so you can delete or move one.
+Open each `.3mf` in `plates/`, choose the preset its name says, slice, print. Every part is already turned the right way up and laid out on a 300 x 300 bed. Each part stays a separate object, so you can delete or move one.
 
 | Plate | Preset | Parts | Time | PETG |
 |---|---|---|---|---|
-| `01_strong_corner_brackets_a` | strong | 2 corner brackets | 15h 30m | 207g |
-| `02_strong_corner_brackets_b` | strong | 2 corner brackets | 15h 30m | 207g |
-| `03_strong_carriage_bridge` | strong | Z carriage, Z bridge | 20h 05m | 255g |
-| `04_standard_sled_base` | standard | sled base, plus all the post spacers, sleeves and measuring caps (with a spare of each) | 18h 45m | 251g |
-| `05_standard_reels` | standard | 4 reel bodies | 7h 10m | 121g |
-| `06_standard_flanges_cups` | standard | 4 reel flanges, 4 motor cups | 7h 00m | 123g |
-| `07_standard_tools` | standard | dust shoe, pen holder and slider, laser holder, 4 knobs, 2 laser shims | 26h 30m | 344g |
-| `08_standard_tray` | standard | electronics tray | 10h 40m | 187g |
-| `09_standard_lid` | standard | electronics lid | 5h 05m | 88g |
-| `10_printed_extras` | see below | 12 hold-down knobs, 4 Z bushings, 4 pinch rollers, 4 belt-end clips | 15h 10m | 208g |
-| **Total** | | | **about 141 hours** | **about 2kg** |
+| `01_strong_corner_brackets_a` | strong | 2 corner brackets | 12h 50m | 181g |
+| `02_strong_corner_brackets_b` | strong | 2 corner brackets | 12h 50m | 181g |
+| `03_strong_carriage_bridge` | strong | Z carriage, Z bridge | 16h 30m | 229g |
+| `04_standard_sled_base` | standard | sled base, plus all the post spacers, sleeves and measuring caps (with a spare of each) | 11h 55m | 234g |
+| `05_light_reels` | light | 4 reel bodies | 4h 45m | 111g |
+| `06_light_flanges_cups` | light | 4 reel flanges, 4 motor cups | 5h 05m | 118g |
+| `07_standard_tools` | standard | dust shoe, pen holder and slider, laser holder, 4 knobs, 2 laser shims | 15h 50m | 308g |
+| `08_light_tray` | light | electronics tray | 7h 50m | 180g |
+| `09_light_lid` | light | electronics lid | 3h 45m | 82g |
+| `10_printed_extras` | light (G-code ready) | 12 hold-down knobs, 4 Z bushings, 4 pinch rollers, 4 belt-end clips | 7h 15m | 129g |
+| **Total** | | | **about 98 hours** | **about 1.75kg** |
+
+That is about 43 hours and 240g less than the first settings I gave you, from matching each part's settings to the load it carries (see "Why these settings" below).
 
 Times come from slicing each plate with your machine's settings in PrusaSlicer (which shares its slicing engine with OrcaSlicer). Expect OrcaSlicer's own estimate to land within about 15% of these. Klipper usually prints a little faster than either estimate.
 
-**Filament:** buy 3kg. The full set needs about 2kg including the printed extras.
+**Filament:** buy 2kg if you are confident, 3kg to allow for a failed print or two.
 
 ## Suggested order
 
@@ -44,13 +47,19 @@ Times come from slicing each plate with your machine's settings in PrusaSlicer (
 3. Then 05 and 06 (reels), 03 (Z axis), 02, 08, 09.
 4. **Plate 07** last. The laser holder, pen holder and shims on it are optional: delete what you don't want before slicing to save time. The dust shoe alone takes about 4 hours.
 
-## Why these settings make the parts strong
+## Why these settings
 
-- **Walls do most of the work.** In a 3D print, strength comes mainly from the solid outer walls, not the infill. Five walls on a 0.4mm nozzle is a 2mm solid skin, which is where the bolts, the motor and the router clamp put their load.
-- **Gyroid infill** is equally strong in every direction and doesn't form weak planes, so it suits parts pulled from several sides like the corner brackets.
-- **Thicker top and bottom** (6 and 5 layers, 1.2 and 1mm) on the strong plates stiffens the flat plates that carry the motor and belt.
-- **Orientation is already chosen** so the main loads run along the layers, not across them. The corner brackets print with the big flat face down, which puts the belt pull in the plane of each layer, the strongest direction for a print.
+The aim is strength where the loads are, and no plastic or time wasted where they are not.
+
+- **Walls do most of the work.** A print's strength comes mainly from its solid outer walls, not its infill. So the parts that carry the belt pull and the router (corner brackets, Z carriage, Z bridge) get 5 walls, a 2mm solid skin, while parts that only hold something in place get 3 or 4.
+- **Infill was the main waste.** On parts this size, going from 50% to 35% infill on the strong parts changes their strength very little but saves hours. Lightly loaded parts like the reels, tray and knobs only need 15%.
+- **Small areas print solid anyway.** Any region under 200mm² (the bushings, rollers, clips, spacers, pegs and bosses) prints solid whatever the infill setting, because that is where a sparse fill would be weakest.
+- **Thicker layers where precision doesn't matter.** 0.28mm layers print about a quarter faster than 0.2mm. They are used everywhere except the strong plates. Those keep 0.2mm, because thinner layers bond together better, and the corner fences and router carriage are pushed in the direction that tries to peel layers apart.
+- **Gyroid infill** is equally strong in every direction and has no weak planes. (The ready-made G-code for plate 10 uses cubic infill instead: just as strong, and it keeps the file small enough to upload.)
+- **Orientation is already chosen** so the main loads run along the layers, not across them.
 - **PETG at 235 to 240°C** bonds its layers well. If a part ever cracks along a layer line, raise the nozzle by 5°C and lower the fan.
+
+**Biggest remaining saving:** plate 07 holds the pen and laser holders, which are optional. Delete what you don't need before slicing.
 
 ## Tips
 
@@ -73,8 +82,8 @@ If you change a part in `cad/`, run `python3 cad/build.py` and then `python3 pri
 | `pinch_roller` | 4 | The 625 bearings on the pinch posts. Same size. Tighten the nut only until it still spins. |
 | `belt_clip` | 4 | The zip ties on each belt's end loop. Pinch with an M3 x 12 screw. |
 
-Settings used: 0.2mm layers, 5 walls, 6 top / 5 bottom layers, 50% cubic infill, 235°C (240°C first layer), bed 80°C, your speeds and acceleration. About 15 hours and 208g.
+Settings used: the light preset (0.28mm layers, 3 walls, 4 top / 3 bottom, 15% cubic infill), with any area under 200mm² printed solid, so the bushings, rollers and clips come out fully solid and only the knobs use sparse infill. 235°C (240°C first layer), bed 80°C, your speeds and acceleration. About 7h 15m and 129g.
 
-The OpenSCAD source for all four parts, and for this plate (`plate_printed_extras.scad`), is in `../scad/`. Every size that matters is a named number at the top of each file, so you can adjust a fit (the bushing bore, say) and re-export. `gcode/x1_petg_klipper_prusaslicer.ini` holds the exact settings used, if you want to re-slice in PrusaSlicer; in OrcaSlicer, use the strong preset.
+The OpenSCAD source for all four parts, and for this plate (`plate_printed_extras.scad`), is in `../scad/`. Every size that matters is a named number at the top of each file, so you can adjust a fit (the bushing bore, say) and re-export. `gcode/x1_petg_klipper_prusaslicer.ini` holds the exact settings used, if you want to re-slice in PrusaSlicer; in OrcaSlicer, use the light preset.
 
 **Test before trusting:** the printed bushings and rollers are worth trying on your first corner unit and carriage before you leave the metal bearings out altogether. If the bushings bind, open the bore up a little in `z_bushing.scad` (`bore_d`).

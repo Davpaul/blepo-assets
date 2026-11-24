@@ -3,7 +3,7 @@
     python3 make_plates.py
 
 Writes plates/*.3mf (open in OrcaSlicer: each part stays a separate object) and
-plates/*.stl. Plates are split into STRONG and STANDARD so one set of slicer
+plates/*.stl. Plates are split into STRONG, STANDARD and LIGHT so one set of slicer
 settings suits everything on a plate.
 """
 import os, sys, zipfile
@@ -23,11 +23,11 @@ PLATES = {
     "02_strong_corner_brackets_b": ("strong", [("corner_bracket", 2)]),
     "03_strong_carriage_bridge":   ("strong", [("z_carriage", 1), ("z_bridge", 1)]),
     "04_standard_sled_base":       ("standard", [("sled_base", 1), ("f_spacer", 5), ("f_sleeve", 5), ("k_spacer", 5), ("measuring_cap", 2)]),
-    "05_standard_reels":           ("standard", [("reel_body", 4)]),
-    "06_standard_flanges_cups":    ("standard", [("reel_flange", 4), ("n20_cup", 4)]),
+    "05_light_reels":           ("light", [("reel_body", 4)]),
+    "06_light_flanges_cups":    ("light", [("reel_flange", 4), ("n20_cup", 4)]),
     "07_standard_tools":           ("standard", [("pen_caddy_body", 1), ("pen_slider", 1), ("thumb_knob", 4), ("dust_shoe", 1), ("laser_caddy", 1), ("laser_shim", 2)]),
-    "08_standard_tray":            ("standard", [("electronics_tray", 1)]),
-    "09_standard_lid":             ("standard", [("electronics_lid", 1)]),
+    "08_light_tray":            ("light", [("electronics_tray", 1)]),
+    "09_light_lid":             ("light", [("electronics_lid", 1)]),
 }
 
 

@@ -86,7 +86,7 @@ An M3 and M5 assortment box covers all of this for about £12.
 |---|---|---|
 | Trim router, 65mm body (Katsu or Makita RT0700C) | 1 | £40 |
 | Router bits: 1/8" and 1/4" single-flute upcut, 60° V-bit | 3 to 4 | £15 |
-| PETG filament | 3kg (the full set uses about 1.8kg) | £42 |
+| PETG filament | 2kg (3kg to allow for reprints); the full set uses about 1.75kg | £28 to £42 |
 | XPS foam insulation board, 50mm, to lie under the sheet | 1 to 2 | £12 |
 | Scrap ply or timber for the corner wings (optional, see BUILD.md) | 4 pieces about 300 x 250mm | free |
 
@@ -132,4 +132,4 @@ All STL files are in `stl/`, already turned the right way up for printing. None 
 | `riser_shim.stl` | as needed | 6mm lifts for a corner unit, see BUILD.md step 7. |
 | `electronics_tray.stl`, `electronics_lid.stl` | 1 each | 225 x 155mm. |
 
-Settings for everything unless noted: PETG, 0.2mm layers, 4 walls, 40% infill. About 1.8kg of filament for one full set, including spares, so buy 3kg. Ready-made OrcaSlicer plates and presets are in `print/`: see `print/README.md`. The full set takes about 126 hours of printing. Print one spare each of the small spacers and sleeves while the printer still exists.
+Settings: see `print/README.md`, which gives each plate one of three presets matched to its load. About 1.75kg of filament for one full set, including spares and the printed extras: buy 2kg, or 3kg to allow for a failed print. Ready-made OrcaSlicer plates and three presets (strong, standard, light) are in `print/`: see `print/README.md`. The full set takes about 98 hours of printing. Print one spare each of the small spacers and sleeves while the printer still exists.
