@@ -162,8 +162,7 @@ def printing():
     table([["Setting", "Strong", "Standard", "Light"], ["Used for", "corner brackets, Z carriage, Z bridge", "sled base, tools", "reels, cups, tray, lid, knobs, extras"],
            ["Layer height", "0.2mm", "0.28mm", "0.28mm"], ["Walls", "5", "4", "3"], ["Top / bottom layers", "5 / 4", "4 / 4", "4 / 3"], ["Infill", "35%", "25%", "15%"]], [22, 30, 20, 28])
     p("All three: nozzle 235 to 240°C, bed 80°C, no supports, gyroid infill, and any area under 200mm² printed solid. The presets in `print/orca` set all this for you.")
-           ["Walls", "4 (5 for `corner_bracket` and `z_carriage`)"], ["Infill", "40% (50% for `corner_bracket` and `z_carriage`)"], ["Supports", "None"], ["Fan", "30 to 50%"]], [30, 70])
-    p("**The quick way:** the `print` folder has OrcaSlicer presets for your X1 and nine ready-made plates, every part already turned the right way up. "
+    p("**The quick way:** the `print` folder has OrcaSlicer presets for your X1 and ten ready-made plates (including the extras below), every part already turned the right way up. "
       "Import the presets, open each plate, pick the preset its name says, print. The full set takes **about 98 hours**. `print/README.md` has the list, times and order.")
     p("**Printed extras:** one more plate holds the 12 hold-down knobs, plus printed replacements for the Z bearings, pinch bearings and belt-end zip ties. "
       "It takes about **7 hours** and **130g**. Ready-to-print G-code for your X1 is in `print/gcode`, and the OpenSCAD source is in `scad`.")
