@@ -8,8 +8,8 @@
   var LS = 'rc_state_v1';
   var DEF = {
     v: 1, u: 0,
-    set: { days: 3, machine: 'treadmill', cue: 'full', voice: '', rate: 1.05, vol: 1, units: 'kg', quick: false, beeps: true },
-    sessions: [], lastW: {}
+    set: { days: 3, machine: 'treadmill', cue: 'full', voice: '', rate: 1.05, vol: 1, units: 'kg', quick: false, beeps: true, fibro: true, bw: 0 },
+    sessions: [], lastW: {}, sug: {}
   };
   function merge(s) {
     var o = JSON.parse(JSON.stringify(DEF));
@@ -20,7 +20,7 @@
   }
   var state;
   try { state = merge(JSON.parse(localStorage.getItem(LS))); } catch (e) { state = merge(null); }
-  var tab = 'today', saveTimer = null;
+  var tab = 'today', saveTimer = null, checkin = false;
 
   function save() {
     state.u = Date.now();
@@ -116,7 +116,31 @@
   function ctx() {
     var n = doneSessions().length, d = +state.set.days;
     var wk = Math.floor(n / d) + 1;
-    return { n: n, wk: wk, w: Math.min(wk, 12), type: n % 2 ? 'B' : 'A', steady: d >= 3 && n % d === d - 1, over: wk > 12 };
+    return { n: n, wk: wk, w: Math.min(wk, 12), we: Math.ceil(Math.min(wk, 12) / 2), type: n % 2 ? 'B' : 'A', steady: d >= 3 && n % d === d - 1, over: wk > 12 };
+  }
+  function eff(c) { return state.set.fibro ? c.we : c.w; }
+  function wsch(w) { var W = weightsScheme(w); if (state.set.fibro) W.sets = Math.min(W.sets, 2); return W; }
+  function steadyM(w) { return Math.round(steadyMins(w) * (state.set.fibro ? 0.75 : 1) * (state.set.quick ? 0.75 : 1)); }
+  function holdS(w) { return state.set.fibro ? 30 : holdSecs(w); }
+  function stepSize() { return state.set.units === 'kg' ? 2.5 : 5; }
+  var START = { legpress: .5, chest: .25, row: .25, curl: .15, shoulder: .15, crunch: .2, legext: .2, lat: .3, abduct: .2, fly: .1, calf: .4, back: .2 };
+  function suggestW(ex) {
+    var g = state.sug[ex.id];
+    if (g) return { w: g.w, note: g.note };
+    if (state.lastW[ex.id] != null) return { w: state.lastW[ex.id], note: 'Your last weight.' };
+    var bw = +state.set.bw;
+    if (!bw) return { w: null, note: 'No history yet. Pick the lightest weight you can move 12 times easily. We adjust from there.' };
+    var st = stepSize(), w = Math.max(st, Math.round(bw * START[ex.id] * (state.set.fibro ? 0.7 : 1) / st) * st);
+    return { w: w, note: 'Starting estimate from your body weight. It should feel easy. Machines differ, so change it if needed.' };
+  }
+  function advise(ex, w, fb) {
+    if (w == null || !fb) { delete state.sug[ex.id]; return null; }
+    var st = stepSize(), nw = w, note;
+    if (fb === 'hard') { nw = Math.max(st, w - st); note = 'Felt too hard, so one notch down.'; }
+    else if (fb === 'easy') { nw = w + st; note = 'Felt too easy, so one notch up.'; }
+    else note = 'Felt right, so stay here until it feels easy.';
+    state.sug[ex.id] = { w: nw, note: note };
+    return { n: ex.name, w: nw, note: note };
   }
   function weightsScheme(w) {
     if (w <= 2) return { sets: 2, reps: 12 };
@@ -125,6 +149,7 @@
     return { sets: 3, reps: 8 };
   }
   function intervalScheme(w) {
+    if (state.set.fibro) return [null, { r: 4, push: 30, easy: 120, e: 5 }, { r: 5, push: 45, easy: 120, e: 5 }, { r: 5, push: 60, easy: 120, e: 5 }, { r: 6, push: 60, easy: 90, e: 6 }, { r: 6, push: 60, easy: 90, e: 6 }, { r: 6, push: 75, easy: 90, e: 6 }][Math.min(w, 6)];
     if (w <= 3) return { r: 5, push: 60, easy: 120, e: 6 };
     if (w <= 6) return { r: 7, push: 60, easy: 90, e: 7 };
     if (w <= 9) return { r: 6, push: 90, easy: 90, e: 7 };
@@ -133,52 +158,61 @@
   function steadyMins(w) { return [20, 20, 22, 22, 24, 24, 26, 26, 28, 28, 30, 30][w - 1]; }
   function holdSecs(w) { return 40 + 10 * Math.floor((w - 1) / 4); }
 
-  function build(c) {
-    var S = state.set, q = S.quick, m = MACH[S.machine], out = [], w = c.w;
+  function build(c, mode) {
+    mode = mode || 'full';
+    var S = state.set, q = S.quick, F = S.fibro, m = MACH[S.machine], out = [], w = F ? c.we : c.w;
     function add(o) { out.push(o); }
 
-    add({ sec: 'Cardio', kind: 'timed', tone: 'easy', title: 'Warm up', sub: m.easy, secs: 180, say: 'Warm up. Easy pace for three minutes.', effort: 3 });
-    if (c.steady) {
-      var mins = Math.round(steadyMins(w) * (q ? 0.75 : 1)), secs = mins * 60, marks = [{ at: secs / 2, say: 'Halfway.' }];
-      if (mins >= 16) marks.push({ at: 300, say: 'Five minutes to go.' });
-      add({ sec: 'Cardio', kind: 'timed', tone: 'easy', title: 'Steady effort', sub: 'Short sentences only. Effort 5 out of 10.', secs: secs, say: 'Steady effort for ' + mins + ' minutes.', more: 'You should manage a few words at a time, not a full chat.', effort: 5, marks: marks });
-    } else {
-      var I = intervalScheme(w), r = q ? Math.max(3, I.r - 1) : I.r;
-      for (var i = 1; i <= r; i++) {
-        add({ sec: 'Cardio', kind: 'timed', tone: 'push', title: 'Push', sub: m.push, secs: I.push, say: 'Push. Round ' + i + ' of ' + r + '.', more: 'Effort ' + I.e + ' out of ten.', effort: I.e, marks: I.push > 40 ? [{ at: 10, say: 'Ten seconds.', full: 1 }] : [] });
-        add({ sec: 'Cardio', kind: 'timed', tone: 'easy', title: 'Ease off', sub: m.easy, secs: I.easy, say: 'Ease off.', more: 'Recover and slow your breathing.', effort: 3 });
+    var warm = F ? 300 : 180;
+    add({ sec: 'Cardio', kind: 'timed', tone: 'easy', title: mode === 'flare' ? 'Gentle walk' : 'Warm up', sub: m.easy, secs: mode === 'flare' ? 300 : warm, say: mode === 'flare' ? 'Gentle movement for five minutes.' : 'Warm up. Easy pace for ' + (warm / 60) + ' minutes.', effort: 2 });
+    if (mode === 'gentle') {
+      add({ sec: 'Cardio', kind: 'timed', tone: 'easy', title: 'Easy movement', sub: 'Effort 3 out of 10. Stop early if it feels like too much.', secs: 600, say: 'Easy movement for ten minutes.', effort: 3, marks: [{ at: 300, say: 'Halfway.' }] });
+    } else if (mode === 'full') {
+      if (c.steady) {
+        var mins = steadyM(w), secs = mins * 60, marks = [{ at: secs / 2, say: 'Halfway.' }];
+        if (mins >= 16) marks.push({ at: 300, say: 'Five minutes to go.' });
+        add({ sec: 'Cardio', kind: 'timed', tone: 'easy', title: 'Steady effort', sub: F ? 'Comfortable and even. Effort 4 out of 10.' : 'Short sentences only. Effort 5 out of 10.', secs: secs, say: 'Steady effort for ' + mins + ' minutes.', more: 'Keep it even and relaxed.', effort: 5, marks: marks });
+      } else {
+        var I = intervalScheme(w), r = q ? Math.max(3, I.r - 1) : I.r;
+        for (var i = 1; i <= r; i++) {
+          add({ sec: 'Cardio', kind: 'timed', tone: 'push', title: 'Push', sub: m.push, secs: I.push, say: 'Push. Round ' + i + ' of ' + r + '.', more: 'Effort ' + I.e + ' out of ten.', effort: I.e, marks: I.push > 40 ? [{ at: 10, say: 'Ten seconds.', full: 1 }] : [] });
+          add({ sec: 'Cardio', kind: 'timed', tone: 'easy', title: 'Ease off', sub: m.easy, secs: I.easy, say: 'Ease off.', more: 'Recover and slow your breathing.', effort: 3 });
+        }
       }
     }
-    add({ sec: 'Cardio', kind: 'timed', tone: 'easy', title: 'Cool down', sub: m.easy, secs: 120, say: 'Cool down. Easy pace.', effort: 2 });
+    if (mode !== 'flare') add({ sec: 'Cardio', kind: 'timed', tone: 'easy', title: 'Cool down', sub: m.easy, secs: 120, say: 'Cool down. Easy pace.', effort: 2 });
 
-    var W = weightsScheme(w), pairs = DAYS[c.type].slice(0, q ? 2 : 3), seq = [];
-    pairs.forEach(function (pr, pi) {
-      for (var s = 1; s <= W.sets; s++) pr.forEach(function (ex, ei) {
-        seq.push({ ex: ex, s: s, last: (s === W.sets && ei === pr.length - 1), endPair: pi === pairs.length - 1 });
+    if (mode !== 'flare') {
+      var W = mode === 'gentle' ? { sets: 1, reps: 10 } : wsch(w), seq = [];
+      var pairs = DAYS[c.type].slice(0, (q || mode === 'gentle') ? 2 : 3);
+      pairs.forEach(function (pr) {
+        for (var s = 1; s <= W.sets; s++) pr.forEach(function (ex, ei) { seq.push({ ex: ex, s: s, last: (s === W.sets && ei === pr.length - 1) }); });
       });
-    });
-    seq.forEach(function (it, idx) {
-      var reps = W.reps + (it.ex.hi ? 4 : 0);
-      add({ sec: 'Weights', kind: 'set', ex: it.ex, set: it.s, sets: W.sets, reps: reps, title: it.ex.name, sub: 'Set ' + it.s + ' of ' + W.sets + ' · ' + reps + ' reps', say: it.ex.name + '. Set ' + it.s + ' of ' + W.sets + '. ' + reps + ' reps.', more: it.s === 1 ? it.ex.cue : '', tip: it.ex.cue });
-      var nx = seq[idx + 1];
-      if (nx) add({ sec: 'Weights', kind: 'rest', tone: 'easy', secs: it.last ? 60 : 40, title: 'Rest', sub: 'Next: ' + nx.ex.name, say: 'Rest. Next, ' + nx.ex.name + '.', marks: [] });
-    });
+      seq.forEach(function (it, idx) {
+        var reps = W.reps + (it.ex.hi ? 4 : 0);
+        add({ sec: 'Weights', kind: 'set', ex: it.ex, set: it.s, sets: W.sets, reps: reps, askFb: it.s === W.sets, title: it.ex.name, sub: 'Set ' + it.s + ' of ' + W.sets + ' · ' + reps + ' reps', say: it.ex.name + '. Set ' + it.s + ' of ' + W.sets + '. ' + reps + ' reps.', more: it.s === 1 ? it.ex.cue : '', tip: it.ex.cue });
+        var nx = seq[idx + 1];
+        if (nx) add({ sec: 'Weights', kind: 'rest', tone: 'easy', secs: F || mode === 'gentle' ? (it.last ? 75 : 60) : (it.last ? 60 : 40), title: 'Rest', sub: 'Next: ' + nx.ex.name, say: 'Rest. Next, ' + nx.ex.name + '.', marks: [] });
+      });
+    }
 
-    var hs = w <= 4 ? 30 : 40;
+    var hs = (F || w <= 4) ? 30 : 40;
     STRETCH.forEach(function (st) {
       (st.sides ? ['Left', 'Right'] : ['']).forEach(function (sd) {
         add({ sec: 'Stretch', kind: 'timed', tone: 'easy', title: st.n + (sd ? ' · ' + sd : ''), sub: st.cue, secs: hs, say: st.n + '.' + (sd ? ' ' + sd + ' side.' : ''), more: 'Breathe slowly.', marks: [] });
       });
     });
 
-    var H = holdSecs(w), list = [['lunge', 1], ['halfsplit', 1], ['butterfly', 0], ['straddle', 0]];
-    if (w >= 5) list.push(['frontsplit', 1]);
-    list.forEach(function (it) {
-      var p = POSES[it[0]];
-      (it[1] ? ['Left', 'Right'] : ['']).forEach(function (sd) {
-        add({ sec: 'Splits', kind: 'timed', tone: 'easy', title: p.name + (sd ? ' · ' + sd : ''), sub: p.tip, secs: H, pose: it[0], mirror: sd === 'Right', say: p.name + '.' + (sd ? ' ' + sd + ' side.' : ''), more: 'Breathe out and sink a little deeper.', marks: [{ at: Math.round(H / 2), say: 'Breathe and sink.', full: 1 }] });
+    if (mode === 'full') {
+      var H = holdS(w), list = [['lunge', 1], ['halfsplit', 1], ['butterfly', 0], ['straddle', 0]];
+      if (w >= 5) list.push(['frontsplit', 1]);
+      list.forEach(function (it) {
+        var p = POSES[it[0]];
+        (it[1] ? ['Left', 'Right'] : ['']).forEach(function (sd) {
+          add({ sec: 'Splits', kind: 'timed', tone: 'easy', title: p.name + (sd ? ' · ' + sd : ''), sub: p.tip + (F ? ' Keep it gentle, around 3 out of 10.' : ''), secs: H, pose: it[0], mirror: sd === 'Right', say: p.name + '.' + (sd ? ' ' + sd + ' side.' : ''), more: 'Breathe out and sink a little deeper.', marks: [{ at: Math.round(H / 2), say: 'Breathe and sink.', full: 1 }] });
+        });
       });
-    });
+    }
 
     var seen = {};
     out.forEach(function (s) { if (!seen[s.sec]) { s.first = true; seen[s.sec] = 1; } });
@@ -234,9 +268,9 @@
   var run = null, ticker = null;
   function fmt(s) { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
 
-  function startSession() {
-    var c = ctx(), steps = build(c);
-    run = { c: c, steps: steps, i: 0, paused: false, t0: Date.now(), logs: [], dlg: null, summary: null };
+  function startSession(mode) {
+    var c = ctx(), steps = build(c, mode || 'full');
+    run = { mode: mode || 'full', fb: {}, cur: {}, adv: [], c: c, steps: steps, i: 0, paused: false, t0: Date.now(), logs: [], dlg: null, summary: null };
     beep(660, 0.1); lockScreen();
     try { if ('speechSynthesis' in window) speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (e) {}
     enter(); clearInterval(ticker); ticker = setInterval(tick, 200);
@@ -279,15 +313,19 @@
   function logSet(st) {
     var w = document.getElementById('rc-w'), r = document.getElementById('rc-r');
     var wv = w && w.value !== '' ? parseFloat(w.value) : null, rv = r ? parseInt(r.value, 10) : st.reps;
-    run.logs.push({ ex: st.ex.id, n: st.ex.name, s: st.set, w: wv, r: rv });
-    if (wv != null) state.lastW[st.ex.id] = wv;
+    var fb = st.askFb ? (run.fb[st.ex.id] || null) : null;
+    run.logs.push({ ex: st.ex.id, n: st.ex.name, s: st.set, w: wv, r: rv, fb: fb });
+    if (wv != null) { state.lastW[st.ex.id] = wv; run.cur[st.ex.id] = wv; }
+    if (st.askFb) { var a = advise(st.ex, wv, fb); if (a) run.adv.push(a); }
   }
   function finish(partial) {
     clearInterval(ticker); unlock();
     try { speechSynthesis.cancel(); } catch (e) {}
     var mins = Math.max(1, Math.round((Date.now() - run.t0) / 60000));
-    var rec = { d: new Date().toISOString(), n: run.c.n, wk: run.c.wk, type: run.c.type, mins: mins, logs: run.logs, partial: !!partial };
-    if (!partial || run.logs.length) { state.sessions.push(rec); save(); }
+    var light = run.mode !== 'full';
+    var rec = { d: new Date().toISOString(), n: run.c.n, wk: run.c.wk, type: run.c.type, mins: mins, logs: run.logs, partial: !!partial || light, light: light };
+    if (!partial || run.logs.length) { state.sessions.push(rec); }
+    save();
     if (!partial) {
       beep(660, 0.12); setTimeout(function () { beep(880, 0.12); }, 140); setTimeout(function () { beep(1100, 0.25); }, 280);
       if (state.set.cue !== 'beeps') speak('Session complete. Nice work.');
@@ -313,7 +351,9 @@
     if (run.summary) {
       var s = run.summary, tot = run.logs.length;
       return '<div class="rc-card" style="text-align:center;margin-top:30px"><h2>Session complete</h2><p class="rc-mut">' + s.mins + ' minutes · ' + tot + ' sets logged</p>' +
-        '<p>Week ' + s.wk + ', day ' + s.type + ' done. Next up is day ' + (s.type === 'A' ? 'B' : 'A') + '.</p></div>' +
+        (s.light ? '<p>Light day done. Your plan has not moved, so there is nothing to catch up on.</p>' : '<p>Week ' + s.wk + ', day ' + s.type + ' done. Next up is day ' + (s.type === 'A' ? 'B' : 'A') + '.</p>') +
+        (run.adv.length ? '<h4 style="text-align:left;margin-top:14px">Next time</h4><ul class="rc-list" style="text-align:left">' + run.adv.map(function (a) { return '<li><span>' + a.n + '</span><span class="rc-mut">' + a.w + ' ' + state.set.units + '</span></li>'; }).join('') + '</ul>' : '') +
+        (state.set.fibro ? '<p class="rc-sm rc-mut" style="margin-top:12px">If you feel worse than usual for more than 48 hours, take the next session as a light day.</p>' : '') + '</div>' +
         '<button class="rc-btn pri big" data-a="close">Done</button>';
     }
     var st = run.steps[run.i], nx = run.steps[run.i + 1], pct = Math.round(run.i / run.steps.length * 100), body = '';
@@ -326,8 +366,14 @@
     body += '<h2 class="rc-title">' + st.title + '</h2>';
     if (st.kind === 'set') {
       body += '<p class="rc-mut" style="font-size:1.1rem;margin:0">' + st.sub + '</p>';
-      body += stepper('rc-w', state.lastW[st.ex.id], state.set.units === 'kg' ? 2.5 : 5, 'Weight (' + state.set.units + ')');
+      var sg = suggestW(st.ex), cw = run.cur[st.ex.id] != null ? run.cur[st.ex.id] : sg.w;
+      body += stepper('rc-w', cw, stepSize(), 'Weight (' + state.set.units + ')');
+      if (run.cur[st.ex.id] == null) body += '<p class="rc-sm rc-mut" style="text-align:center;margin:0">' + sg.note + '</p>';
       body += stepper('rc-r', st.reps, 1, 'Reps done');
+      if (st.askFb) {
+        var cf = run.fb[st.ex.id];
+        body += '<div><div class="rc-lab">How did this exercise feel?</div><div class="rc-seg">' + [['easy', 'Too easy'], ['ok', 'Just right'], ['hard', 'Too hard']].map(function (o) { return '<button data-a="fb" data-v="' + o[0] + '" data-x="' + st.ex.id + '"' + (cf === o[0] ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('') + '</div></div>';
+      }
       body += '<div class="rc-tip">' + st.tip + '</div>';
     } else {
       body += '<div id="rc-time" class="rc-time ' + (st.tone || '') + '">' + fmt(run.remain / 1000) + '</div>';
@@ -347,32 +393,37 @@
   function weekKey(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.getTime(); }
 
   function viewToday() {
-    var c = ctx(), steps = build(c), d = +state.set.days;
+    var c = ctx(), steps = build(c, 'full'), d = +state.set.days, ew = eff(c);
+    if (checkin) return '<div class="rc-card"><h2>How are you today?</h2><p class="rc-mut">Pick the one that fits. Light days never set your plan back.</p><div style="display:grid;gap:10px">' +
+      '<button class="rc-btn pri big" data-a="go" data-m="full">Good day<br><span class="rc-sm">Full session</span></button>' +
+      '<button class="rc-btn big" data-a="go" data-m="gentle">Tired or sore<br><span class="rc-sm">Light session: easy movement, 1 set, stretches</span></button>' +
+      '<button class="rc-btn big" data-a="go" data-m="flare">Flaring<br><span class="rc-sm">Gentle walk and stretches only</span></button>' +
+      '<button class="rc-btn ghost" data-a="cancelci">Back</button></div></div>';
     var wkStart = weekKey(Date.now()), thisWeek = doneSessions().filter(function (s) { return weekKey(s.d) === wkStart; }).length;
     var mins = 0; doneSessions().forEach(function (s) { mins += s.mins; });
     var exList = '';
     DAYS[c.type].slice(0, state.set.quick ? 2 : 3).forEach(function (pr) { exList += '<li><span>' + pr[0].name + '</span><span class="rc-mut">+ ' + pr[1].name + '</span></li>'; });
-    var W = weightsScheme(c.w);
-    var cardioTxt = c.steady ? 'Steady ' + Math.round(steadyMins(c.w) * (state.set.quick ? .75 : 1)) + ' min at a talking pace' : (function () { var I = intervalScheme(c.w); return (state.set.quick ? Math.max(3, I.r - 1) : I.r) + ' rounds of ' + I.push + 's push, ' + I.easy + 's easy'; })();
+    var W = wsch(ew);
+    var cardioTxt = c.steady ? 'Steady ' + steadyM(ew) + ' min at an even pace' : (function () { var I = intervalScheme(ew); return (state.set.quick ? Math.max(3, I.r - 1) : I.r) + ' rounds of ' + I.push + 's push, ' + I.easy + 's easy'; })();
     return '<div class="rc-card"><div class="rc-row" style="justify-content:space-between"><h2 style="margin:0">Today</h2><span class="rc-chip">Week ' + c.wk + (c.over ? ' · repeating 12' : '') + ' · Day ' + c.type + '</span></div>' +
       '<p class="rc-mut" style="margin:6px 0 10px">About ' + estMins(steps) + ' minutes</p><p>' + blockSummary(steps) + '</p>' +
       '<h4>Cardio</h4><p class="rc-mut">' + MACH[state.set.machine].name + ': ' + cardioTxt + '.</p>' +
       '<h4>Weights · ' + W.sets + ' sets, alternating pairs</h4><ul class="rc-list">' + exList + '</ul>' +
-      '<h4 style="margin-top:12px">Finish</h4><p class="rc-mut">Five stretches, then ' + holdSecs(c.w) + ' second splits holds.</p>' +
+      '<h4 style="margin-top:12px">Finish</h4><p class="rc-mut">Five stretches, then ' + holdS(ew) + ' second splits holds.</p>' +
       '<button class="rc-btn pri big" data-a="start">Start session</button></div>' +
       '<div class="rc-grid"><div class="rc-stat"><b>' + thisWeek + '/' + d + '</b><span class="rc-sm rc-mut">This week</span></div><div class="rc-stat"><b>' + doneSessions().length + '</b><span class="rc-sm rc-mut">Sessions</span></div><div class="rc-stat"><b>' + mins + '</b><span class="rc-sm rc-mut">Minutes</span></div></div>' +
-      '<p class="rc-sm rc-mut" style="margin-top:14px">Start every weight light. Pick a load you could move 15 times. When you finish every set at the top of the rep range, add a small step next time. If you get chest pain, dizziness or odd breathlessness, stop. After a year off it is worth a quick check with your doctor first.</p>';
+      (state.set.fibro ? '<p class="rc-sm" style="margin-top:14px"><b>Fibromyalgia mode is on.</b> Progress runs at half speed, effort stays moderate, rests are longer and splits holds stay short. Pace yourself and aim to feel okay the next day.</p>' : '') + '<p class="rc-sm rc-mut" style="margin-top:14px">Start every weight light. Pick a load you could move 15 times. When you finish every set at the top of the rep range, add a small step next time. If you get chest pain, dizziness or odd breathlessness, stop. After a year off it is worth a quick check with your doctor first. A physio can tailor this if you have fibromyalgia.</p>';
   }
 
   function viewPlan() {
     var c = ctx(), rows = '';
     for (var w = 1; w <= 12; w++) {
-      var I = intervalScheme(w), W = weightsScheme(w);
-      rows += '<div class="rc-wk' + (w === c.w ? ' cur' : '') + '"><div class="n">' + w + '</div><div class="rc-sm"><b>Cardio</b> ' + I.r + ' x ' + I.push + 's push / ' + I.easy + 's easy, plus one steady ' + steadyMins(w) + ' min.<br><b>Weights</b> ' + W.sets + ' x ' + W.reps + '. <b>Splits</b> ' + holdSecs(w) + 's holds' + (w >= 5 ? ', front split slide added' : '') + '.</div></div>';
+      var ev = state.set.fibro ? Math.ceil(w / 2) : w, I = intervalScheme(ev), W = wsch(ev);
+      rows += '<div class="rc-wk' + (w === c.w ? ' cur' : '') + '"><div class="n">' + w + '</div><div class="rc-sm"><b>Cardio</b> ' + I.r + ' x ' + I.push + 's push / ' + I.easy + 's easy, plus one steady ' + steadyM(ev) + ' min.<br><b>Weights</b> ' + W.sets + ' x ' + W.reps + '. <b>Splits</b> ' + holdS(ev) + 's holds' + (ev >= 5 ? ', front split slide added' : '') + '.</div></div>';
     }
     var figs = '';
     for (var k in POSES) figs += '<div class="rc-card" style="margin:0;padding:10px">' + fig(k) + '<h4 style="margin-top:8px">' + POSES[k].name + '</h4><p class="rc-sm rc-mut" style="margin:0">' + POSES[k].tip + '</p></div>';
-    return '<div class="rc-card"><h2>12 week plan</h2><p class="rc-mut rc-sm">The plan moves on when you complete sessions, not on the calendar, so a missed week costs nothing. Days alternate A and B. The last session of each week is steady cardio.</p>' + rows + '</div>' +
+    return '<div class="rc-card"><h2>12 week plan</h2>' + (state.set.fibro ? '<p class="rc-sm" style="color:var(--ok)">Fibromyalgia mode: each level lasts two weeks, so you ramp up more slowly.</p>' : '') + '<p class="rc-mut rc-sm">The plan moves on when you complete sessions, not on the calendar, so a missed week costs nothing. Days alternate A and B. The last session of each week is steady cardio.</p>' + rows + '</div>' +
       '<h3>Splits library</h3><p class="rc-mut rc-sm">The orange circle marks where you should feel it. Warm muscles only, never bounce, and keep discomfort around 6 out of 10.</p><div class="rc-figs">' + figs + '</div>';
   }
 
@@ -389,7 +440,7 @@
     for (var id in byEx) { var e = byEx[id]; strength += '<li><span>' + e.n + '</span><span class="rc-mut">' + e.first + ' &rarr; <b style="color:var(--tx)">' + e.last + '</b> ' + state.set.units + ' (best ' + e.best + ')</span></li>'; }
     var hist = state.sessions.slice().reverse().slice(0, 12).map(function (s) {
       var dt = new Date(s.d);
-      return '<li><span>' + dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' · Week ' + s.wk + ' day ' + s.type + (s.partial ? ' (partial)' : '') + '</span><span class="rc-mut">' + s.mins + ' min</span></li>';
+      return '<li><span>' + dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ' · Week ' + s.wk + ' day ' + s.type + (s.light ? ' (light day)' : s.partial ? ' (partial)' : '') + '</span><span class="rc-mut">' + s.mins + ' min</span></li>';
     }).join('');
     return '<div class="rc-card"><h3>Sessions per week</h3><div class="rc-bars-wrap"><div class="rc-bars">' + bars + '</div></div></div>' +
       '<div class="rc-card"><h3>Strength</h3>' + (strength ? '<ul class="rc-list">' + strength + '</ul>' : '<p class="rc-mut">Log weights during sets and your first, latest and best loads show here.</p>') + '</div>' +
@@ -405,6 +456,8 @@
     return '<div class="rc-card"><h3>Training</h3>' +
       f('Days per week', '<select data-s="days">' + opts({ 2: '2', 3: '3', 4: '4' }, String(S.days)) + '</select>') +
       f('Cardio machine', '<select data-s="machine">' + opts(mach, S.machine) + '</select>') +
+      f('Fibromyalgia mode', '<input type="checkbox" data-s="fibro"' + (S.fibro ? ' checked' : '') + '>', 'Slower progress, moderate effort, longer rests, light day option') +
+      f('Body weight (' + S.units + ')', '<input type="number" step="1" min="0" data-s="bw" value="' + (S.bw || '') + '">', 'Optional. Used only for starting weight estimates') +
       f('Time saver', '<input type="checkbox" data-s="quick"' + (S.quick ? ' checked' : '') + '>', 'One fewer weights pair and shorter cardio') +
       f('Units', '<select data-s="units">' + opts({ kg: 'kg', lb: 'lb' }, S.units) + '</select>') + '</div>' +
       '<div class="rc-card"><h3>Audio cues</h3>' +
@@ -432,7 +485,9 @@
     var b = e.target.closest('[data-a]'); if (!b) return;
     var a = b.getAttribute('data-a');
     if (a === 'tab') { tab = b.getAttribute('data-t'); render(); }
-    else if (a === 'start') startSession();
+    else if (a === 'start') { if (state.set.fibro) { checkin = true; render(); } else startSession('full'); }
+    else if (a === 'go') { checkin = false; startSession(b.getAttribute('data-m')); }
+    else if (a === 'cancelci') { checkin = false; render(); }
     else if (a === 'adj') {
       var i = document.getElementById(b.getAttribute('data-t')), v = parseFloat(i.value || 0) + parseFloat(b.getAttribute('data-d'));
       i.value = Math.max(0, Math.round(v * 100) / 100);
@@ -443,6 +498,10 @@
         var l = document.createElement('a'); l.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 1)], { type: 'application/json' })); l.download = 'recondition-backup.json'; l.click();
       }
       else if (a === 'reset' && confirm('Delete all sessions and settings?')) { state = merge(null); save(); render(); }
+    }
+    else if (a === 'fb') {
+      run.fb[b.getAttribute('data-x')] = b.getAttribute('data-v');
+      b.parentNode.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
     }
     else if (a === 'next') next();
     else if (a === 'back') back();
@@ -461,7 +520,7 @@
   root.addEventListener('change', function (e) {
     var k = e.target.getAttribute('data-s'); if (!k) return;
     var v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    if (['days', 'rate', 'vol'].indexOf(k) > -1) v = parseFloat(v);
+    if (['days', 'rate', 'vol', 'bw'].indexOf(k) > -1) v = parseFloat(v);
     state.set[k] = v; save(); render();
   });
   if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = function () { if (tab === 'settings' && !run) render(); };

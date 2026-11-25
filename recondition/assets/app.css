@@ -62,3 +62,7 @@
 .rc-next{color:var(--mut);text-align:center;font-size:.95rem}
 .rc-dlg{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:10px}
 @media (max-width:420px){.rc-time{font-size:4.6rem}}
+.rc-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.rc-seg button{border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:10px;padding:12px 4px;font:inherit;font-weight:600;cursor:pointer}
+.rc-seg button.on{background:var(--acc);color:#111;border-color:var(--acc)}
+.rc-btn.big{flex-direction:column;gap:2px}.rc-btn .rc-sm{font-weight:500;opacity:.85}
