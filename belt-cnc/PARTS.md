@@ -128,8 +128,11 @@ All STL files are in `stl/`, already turned the right way up for printing. None 
 | `thumb_knob.stl` | 4 | Push an M5 hex bolt head into each. |
 | `laser_caddy.stl` | 1 | Only if you fit a laser. |
 | `laser_shim.stl` | as needed | Packing for laser modules under 40mm square. |
-| `hold_down_knob` | 12 | On the printed-extras plate, with `z_bushing`, `pinch_roller` and `belt_clip`. Source in `scad/`, G-code in `print/gcode/`. |
+| `hold_down_knob.stl` | 12 | Presses an M6 nut in underneath. Holds each corner unit on its studs. |
+| `z_bushing.stl` | 4 | Optional: replaces the LM8UU bearings. |
+| `pinch_roller.stl` | 4 | Optional: replaces the 625 bearings. |
+| `belt_clip.stl` | 4 | Optional: replaces the zip ties on the belt ends. |
 | `riser_shim.stl` | as needed | 6mm lifts for a corner unit, see BUILD.md step 7. |
 | `electronics_tray.stl`, `electronics_lid.stl` | 1 each | 225 x 155mm. |
 
-Settings: see `print/README.md`, which gives each plate one of three presets matched to its load. About 1.75kg of filament for one full set, including spares and the printed extras: buy 2kg, or 3kg to allow for a failed print. Ready-made OrcaSlicer plates and three presets (strong, standard, light) are in `print/`: see `print/README.md`. The full set takes about 98 hours of printing. Print one spare each of the small spacers and sleeves while the printer still exists.
+Settings: see `print/README.md`, which gives each plate one of three presets matched to its load. About 1.75kg of filament for one full set, including spares and the printed extras: buy 2kg, or 3kg to allow for a failed print. Ready-made OrcaSlicer plates and three presets (strong, standard, light) are in `print/`: see `print/README.md`. The full set takes about 98 hours of printing. The four extras above are on plate 10: OpenSCAD source in `scad/`, ready-sliced G-code in `print/gcode/`. Print one spare each of the small spacers and sleeves while the printer still exists.
