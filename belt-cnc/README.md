@@ -11,6 +11,7 @@ A full-sheet CNC router that packs away. Four stepper motors at the corners of t
 | File | What it is |
 |---|---|
 | [belt-cnc-build-guide.pdf](belt-cnc-build-guide.pdf) | The illustrated step-by-step manual: an exploded picture for every step, life-size drawings of every fastener, tips throughout. Print at 100%. |
+| [TEST_KIT.md](TEST_KIT.md) | The minimum first test: one corner unit on a bench (about £50, 9 hours of printing) |
 | [PARTS.md](PARTS.md) | What to salvage from the Artillery X1, what to buy, what to print |
 | [BUILD.md](BUILD.md) | Step-by-step construction and setup |
 | [WIRING.md](WIRING.md) | Beginner's guide to the wiring, with diagrams. Network leads and screw terminals, almost no soldering |

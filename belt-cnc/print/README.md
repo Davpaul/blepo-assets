@@ -22,6 +22,7 @@ Open each `.3mf` in `plates/`, choose the preset its name says, slice, print. Ev
 
 | Plate | Preset | Parts | Time | PETG |
 |---|---|---|---|---|
+| `00_test_kit` | strong (G-code ready) | the **minimum test**: 1 corner bracket, 1 reel set, spare post spacers. See `../TEST_KIT.md` | 9h 20m | 160g |
 | `01_strong_corner_brackets_a` | strong | 2 corner brackets | 12h 50m | 181g |
 | `02_strong_corner_brackets_b` | strong | 2 corner brackets | 12h 50m | 181g |
 | `03_strong_carriage_bridge` | strong | Z carriage, Z bridge | 16h 30m | 229g |
@@ -32,7 +33,7 @@ Open each `.3mf` in `plates/`, choose the preset its name says, slice, print. Ev
 | `08_light_tray` | light | electronics tray | 7h 50m | 180g |
 | `09_light_lid` | light | electronics lid | 3h 45m | 82g |
 | `10_printed_extras` | light (G-code ready) | 12 hold-down knobs, 4 Z bushings, 4 pinch rollers, 4 belt-end clips | 7h 15m | 129g |
-| **Total** | | | **about 98 hours** | **about 1.75kg** |
+| **Total (plates 01 to 10, without the test kit)** | | | **about 98 hours** | **about 1.75kg** |
 
 That is about 43 hours and 240g less than the first settings I gave you, from matching each part's settings to the load it carries (see "Why these settings" below).
 
@@ -41,6 +42,8 @@ Times come from slicing each plate with your machine's settings in PrusaSlicer (
 **Filament:** buy 2kg if you are confident, 3kg to allow for a failed print or two.
 
 ## Suggested order
+
+0. **Plate 00, the test kit, first.** It is one corner unit on a bench for about £50 and nine hours of printing: see `../TEST_KIT.md`. Do the rest once it works.
 
 1. **Plate 01** first, then build one corner unit and do the pinch-gap check (manual, section 3). If the gap is wrong, fix it before printing plate 02.
 2. **Plate 04** next: it has the small post parts every corner needs.

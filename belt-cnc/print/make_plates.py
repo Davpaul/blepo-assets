@@ -19,6 +19,8 @@ GAP = 8.0
 
 # plate name -> (profile, [(part, copies)])
 PLATES = {
+    "00_test_kit":                 ("strong", [("corner_bracket", 1), ("reel_body", 1), ("reel_flange", 1), ("n20_cup", 1),
+                                               ("f_spacer", 2), ("f_sleeve", 2), ("k_spacer", 2)]),
     "01_strong_corner_brackets_a": ("strong", [("corner_bracket", 2)]),
     "02_strong_corner_brackets_b": ("strong", [("corner_bracket", 2)]),
     "03_strong_carriage_bridge":   ("strong", [("z_carriage", 1), ("z_bridge", 1)]),
@@ -89,6 +91,22 @@ def write_stl(path, objects):
         fh.write(b"belt-cnc plate".ljust(80, b" ")); fh.write(struct.pack("<I", len(tris))); fh.write(rec.tobytes())
 
 
+# Hand-placed layouts (x, y of each part's corner, mm) where the shelf packer would leave too little edge room.
+LAYOUTS = {
+    "00_test_kit": {"corner_bracket": (0, 0), "reel_body": (150, 0), "reel_flange": (150, 120), "n20_cup": (0, 188),
+                    "f_spacer_1": (0, 212), "f_spacer_2": (20, 212), "f_sleeve_1": (40, 212), "f_sleeve_2": (58, 212),
+                    "k_spacer_1": (76, 212), "k_spacer_2": (94, 212)},
+}
+
+
+def manual_layout(plate, objs):
+    pos = LAYOUTS[plate]
+    out = [(n, v + np.array([pos[n][0], pos[n][1], 0]), f) for n, v, f in objs]
+    allv = np.vstack([v for _, v, _ in out])
+    shift = np.array([(BED - allv[:, 0].max()) / 2, (BED - allv[:, 1].max()) / 2, 0])
+    return [(n, v + shift, f) for n, v, f in out]
+
+
 def main():
     out = os.path.join(HERE, "plates")
     os.makedirs(out, exist_ok=True)
@@ -101,7 +119,7 @@ def main():
             v, f = cache[name]
             for k in range(qty):
                 objs.append((f"{name}_{k + 1}" if qty > 1 else name, v, f))
-        laid = shelf_pack(objs)
+        laid = manual_layout(plate, objs) if plate in LAYOUTS else shelf_pack(objs)
         write_3mf(os.path.join(out, plate + ".3mf"), laid)
         write_stl(os.path.join(out, plate + ".stl"), laid)
         allv = np.vstack([v for _, v, _ in laid])
